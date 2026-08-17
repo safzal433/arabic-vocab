@@ -100,26 +100,36 @@ only draws from whichever list(s) are currently selected.
 ### How Listen & Learn works
 
 Rather than reading the whole list top-to-bottom, it takes a **small batch
-of words** (5 by default — use the ＋/－ buttons to change it) and makes
-three passes over that batch:
+of words** (5 by default — use the ＋/－ buttons to change it) and mixes
+two kinds of step together:
 
-1. **👂 Listen** — hear the Arabic word, then its English meaning.
-2. **🗣️ Your turn** — hear the Arabic, then the banner turns gold for a
-   couple of seconds of silence. That's the child's cue to *say the word
-   out loud*, and then it plays again so they can check themselves.
-3. **🤔 Do you remember?** — hear the Arabic while the meanings on screen
-   are covered up (`? ? ?`), a few seconds to think, then the answer is
-   revealed and read aloud.
+- **👂 New word** — hear the Arabic, hear the English, then the banner
+  turns gold for a couple of seconds of silence. That's the child's cue to
+  *say the word out loud*, and then it plays once more so they can check
+  themselves.
+- **🤔 Do you remember?** — hear the Arabic while that word's meaning is
+  covered up (`? ? ?`), a few seconds to remember it, then the answer is
+  revealed and read aloud.
+
+Each word is tested **three times, at growing gaps**. The first test comes
+almost straight after the word is taught, when it's still fresh and the
+child will almost certainly get it; later tests are pushed further and
+further back, with other words filling the space in between. A meaning
+stays covered on screen until that word has actually been taught, so the
+list can't be read ahead.
 
 At the end of the batch it offers to **quiz those exact words**, practice
 them again, or move on to the next batch.
 
-This is deliberately different from just repeating each word five times in
-a row. Repeating a word back-to-back makes it feel familiar without making
-it stick — the two things that actually build memory are *spacing* the
-repeats out and *actively recalling* the word instead of just re-hearing
-it. The echo and recall passes are where the real learning happens, so
-it's worth letting the silences play out rather than skipping ahead.
+The reason for all this: repeating a word five times in a row makes it
+*feel* familiar without making it stick. What builds memory is recalling
+the word from memory, and spacing those recalls out. But retrieval only
+helps while the child is mostly succeeding — a test they reliably fail is
+just discouraging. Starting the first test almost immediately and then
+stretching the gap keeps it effortful but achievable.
+
+A batch of 5 takes roughly 2 minutes. Short and frequent beats long and
+occasional, so a couple of batches a day is plenty.
 
 ### Review scheduling (spaced repetition)
 
