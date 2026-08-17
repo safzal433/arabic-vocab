@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# Downloads audio/<id>.mp3 for every word in words.js that doesn't already
-# have a local audio file. Uses the same Google Translate voice as the
-# starter set, so newly added words sound consistent with the rest.
+# Downloads two audio files per word in words.js:
+#   audio/<id>.mp3     the Arabic word
+#   audio/<id>_en.mp3  its English meaning
+# Both use the Google Translate voice, so everything sounds consistent and
+# — importantly — the app never has to hit the network at play time.
 #
 # Run this after adding new words to words.js. Safe to re-run any time —
 # words that already have a file in audio/ are skipped, not re-fetched.
@@ -64,19 +66,19 @@ trim_to_second_repetition(){
 }
 
 fetch_one(){
-  local id="$1" text="$2" out="audio/${id}.mp3"
+  local label="$1" lang="$2" text="$3" out="$4"
   printf '%s . %s' "$text" "$text" > "$query_file"
 
   curl -s -A "Mozilla/5.0 (Windows NT 10.0; Win64; x64)" \
     -G "https://translate.google.com/translate_tts" \
     --data-urlencode "ie=UTF-8" \
-    --data-urlencode "tl=ar" \
+    --data-urlencode "tl=${lang}" \
     --data-urlencode "client=tw-ob" \
     --data-urlencode "q@${query_file}" \
     -o "$out"
 
   if [ ! -s "$out" ]; then
-    echo "  x $id got an empty response — leaving no file, re-run the script later" >&2
+    echo "  x $label got an empty response — leaving no file, re-run the script later" >&2
     rm -f "$out"
     return 1
   fi
@@ -85,32 +87,47 @@ fetch_one(){
   hash=$(md5sum "$out" | cut -d' ' -f1)
   owner="${seen_hash_owner[$hash]:-}"
   if [ -n "$owner" ]; then
-    echo "  ! $id -> identical audio to $owner — check both by ear, this may be a real duplicate query" >&2
+    echo "  ! $label -> identical audio to $owner — check both by ear, this may be a real duplicate query" >&2
   fi
-  seen_hash_owner[$hash]="$id"
+  seen_hash_owner[$hash]="$label"
 
   if [ -n "$FFMPEG" ]; then
     trim_to_second_repetition "$out"
-    echo "fetched $id -> $out (trimmed to single pronunciation)"
+    echo "fetched $label -> $out (trimmed to single pronunciation)"
   else
-    echo "fetched $id -> $out (says the word twice — install ffmpeg and re-run to trim)"
+    echo "fetched $label -> $out (says it twice — install ffmpeg and re-run to trim)"
   fi
 }
 
 while IFS= read -r line; do
   id=$(grep -oP '(?<=id: ")[^"]+' <<< "$line" || true)
   arabic=$(grep -oP '(?<=arabic: ")[^"]+' <<< "$line" || true)
+  english=$(grep -oP '(?<=english: ")[^"]+' <<< "$line" || true)
   [ -z "$id" ] && continue
   [ -z "$arabic" ] && continue
 
-  out="audio/${id}.mp3"
-  if [ -f "$out" ]; then
-    echo "skip   $id (already have audio)"
-    continue
+  ar_out="audio/${id}.mp3"
+  if [ -f "$ar_out" ]; then
+    echo "skip   $id ar (already have audio)"
+  else
+    fetch_one "$id ar" "ar" "$arabic" "$ar_out" || true
+    sleep 1
   fi
 
-  fetch_one "$id" "$arabic" || true
-  sleep 1
+  # English side. The app needs this locally for the same reason Arabic does:
+  # the live translate_tts endpoint is blocked from some origins (GitHub
+  # Pages among them), and without a local file the app drops to the much
+  # flatter built-in Windows voice.
+  en_out="audio/${id}_en.mp3"
+  if [ -z "$english" ]; then
+    continue
+  fi
+  if [ -f "$en_out" ]; then
+    echo "skip   $id en (already have audio)"
+  else
+    fetch_one "$id en" "en" "$english" "$en_out" || true
+    sleep 1
+  fi
 done < <(sed -n '/const WORD_BANK = \[/,/^\];/p' words.js | grep -E '^\s*\{\s*id:\s*"w[0-9]+".*arabic:')
 
 echo "Done."
