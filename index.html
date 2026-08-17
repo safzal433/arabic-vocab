@@ -2030,7 +2030,14 @@
         await sleep(LL_ECHO_GAP_MS);
         llSetPrompting(false);
         if(token !== llRunToken) return;
+        // Close the step on Arabic + English, not Arabic alone: a trailing
+        // Arabic word runs straight into the next step's Arabic and the two
+        // blur together. The meaning acts as a full stop for the word.
         await speakArabicAsync(step.word);
+        if(token !== llRunToken) return;
+        await sleep(200);
+        if(token !== llRunToken) return;
+        await speakEnglishAsync(step.word);
       } else {
         await speakArabicAsync(step.word);
         if(token !== llRunToken) return;
