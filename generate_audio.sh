@@ -130,4 +130,16 @@ while IFS= read -r line; do
   fi
 done < <(sed -n '/const WORD_BANK = \[/,/^\];/p' words.js | grep -E '^\s*\{\s*id:\s*"w[0-9]+".*arabic:')
 
+# Fixed UI phrase (not a vocabulary word): Listen & Learn's quiz step says
+# "<Arabic word>" then this, forming "<word> means...", before the pause
+# and the answer. Pre-downloaded for the same reason every word is — the
+# live endpoint is blocked from some origins, so without a local file this
+# would fall back to a jarringly different-sounding browser voice.
+means_out="audio/means.mp3"
+if [ -f "$means_out" ]; then
+  echo "skip   means (already have audio)"
+else
+  fetch_one "means" "en" "means" "$means_out" || true
+fi
+
 echo "Done."

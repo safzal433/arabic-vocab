@@ -417,11 +417,9 @@
   }
   .ll-pass-label{ font-weight:800; font-size:1.05rem; color: var(--teal-deep); }
   .ll-pass-hint{ font-size:0.85rem; color: var(--ink-soft); margin-top:2px; }
-  /* The gold "your turn / think about it" state — the silent gap where the
-     child speaks or recalls before the answer plays. */
-  .ll-pass-banner.prompting{ background: var(--gold); animation: promptPulse 1s ease-in-out infinite; }
-  .ll-pass-banner.prompting .ll-pass-label,
-  .ll-pass-banner.prompting .ll-pass-hint{ color:#4A3200; }
+  /* Shared by .ll-row.your-turn below — the gold "it's this word's turn"
+     pulse now lives on the row itself, right next to the word it's about,
+     instead of the banner at the top. */
   @keyframes promptPulse{
     0%,100%{ transform: scale(1); }
     50%{ transform: scale(1.03); }
@@ -453,14 +451,32 @@
     background: var(--teal-pale); border-color: var(--teal);
   }
   .ll-row.active .ll-row-english{ color: var(--teal-deep); }
-  /* Recall pass: meanings stay covered until each word is revealed —
-     if the answer is visible on screen there's no retrieval happening.
-     visibility (not display) keeps the row heights from jumping. */
+  /* Meanings stay covered until each word is taught — if the answer is
+     visible on screen there's no retrieval happening. visibility (not
+     display) keeps the row heights from jumping. */
   .ll-list.ll-hide-meaning .ll-row:not(.revealed) .ll-row-english,
   .ll-list.ll-hide-meaning .ll-row:not(.revealed) .ll-row-translit{ visibility:hidden; }
   .ll-list.ll-hide-meaning .ll-row:not(.revealed) .ll-row-info::after{
     content:"? ? ?"; position:absolute; left:0; top:50%; transform:translateY(-50%);
     color: var(--ink-soft); font-weight:800; letter-spacing:0.16em;
+  }
+  /* Quiz/review moment: the row itself becomes the prompt instead of the
+     banner at the top, so the "who's turn is it" cue sits right next to
+     the word it's about. The badge is a real element positioned over the
+     same spot as the "? ? ?" placeholder (not fighting it via ::after
+     content, which made the layout awkward), and .your-turn's extra
+     specificity still wins that placeholder off when both would apply. */
+  .ll-row.your-turn{
+    background: var(--gold); border-color: var(--gold-deep);
+    animation: promptPulse 1s ease-in-out infinite;
+  }
+  .ll-list.ll-hide-meaning .ll-row.your-turn:not(.revealed) .ll-row-info::after{ content: none; }
+  /* Visibility is controlled purely by the .hidden utility class, toggled
+     in JS alongside .your-turn on the row — no separate CSS show/hide rule
+     needed here. */
+  .ll-row-turn{
+    position:absolute; left:0; top:50%; transform:translateY(-50%);
+    font-weight:800; color:#4A3200; white-space:nowrap;
   }
 
   /* ---------- Round summary ---------- */
@@ -1865,66 +1881,37 @@
   /* ============================================================
      LISTEN & LEARN MODE
      ============================================================
-     Teaches a small batch of words (llBatchSize) at a time using
-     *expanding retrieval* (Landauer & Bjork, 1978) rather than fixed
-     passes over the whole batch. Each word generates a schedule of
-     events:
+     Teaches a small batch of words (llBatchSize) at a time, one word
+     fully at a time rather than interleaved, in three phases:
 
-       TEACH — hear the Arabic, hear the English, a silent gap to say
-               the Arabic aloud, then hear it once more to check.
-       TEST  — hear the Arabic with the meaning covered on screen, a
-               silent gap to remember it, then the answer is revealed
-               and read out.
+       1. TEACH  — Arabic + English, repeated LL_TEACH_REPEATS times.
+       2. QUIZ   — right after that word's repeats: the word's own row
+                   highlights gold with a "Your turn!" badge in place of
+                   its meaning, "<Arabic> means..." plays, then a silent
+                   gap to answer, then the meaning is revealed and read.
+       3. REVIEW — once every word in the batch has been taught and
+                   quizzed once, a second pass quizzes the whole batch
+                   again, same format as QUIZ.
 
-     A word's first TEST lands one event after its TEACH, so success is
-     near-certain; each later test is pushed further out (LL_LAGS), with
-     other words' events filling the gap. That ordering matters: the
-     evidence for retrieval practice is strongest when attempts mostly
-     *succeed* — a test the child reliably fails is just discouraging,
-     and "desirable difficulty" only helps while the difficulty stays
-     within reach. Starting easy and stretching the interval keeps the
-     retrieval effortful but achievable.
-
-     The batch then hands off to a real quiz, and every answer there
-     feeds the SRS scheduler for review on later days.
+     Earlier versions interleaved words to space out repeats (an
+     evidence-backed technique), but that made the currently-tested word
+     jump around the list unpredictably — confusing to follow for a
+     5-7 year old. This trades some of that spacing for a much simpler,
+     easier-to-follow rhythm: finish one word, get asked about it, move
+     to the next, then a single review lap at the end.
      ============================================================ */
-  const LL_LAGS = [1, 3, 7];     // events between a word's teach and each successive test
-  const LL_ECHO_GAP_MS = 2600;   // silence for the child to repeat the word
-  const LL_RECALL_GAP_MS = 3200; // silence to retrieve the meaning before the reveal
+  const LL_TEACH_REPEATS = 3;    // times each word's Arabic+English is repeated while teaching
+  const LL_RECALL_GAP_MS = 3000; // silence to answer before the meaning is revealed
 
   let llRowEls = []; // one row per llBatch entry, rebuilt for each batch
 
-  /* Builds the interleaved teach/test running order for a batch. Walks a
-     virtual timeline: at each position, play any test that has come due,
-     otherwise introduce the next new word. Once every word is taught,
-     the remaining tests drain in due order. */
-  function buildExpandingSchedule(words){
+  // Linear schedule: teach+quiz each word in order, then review every word
+  // once more. No interleaving — the active row only moves forward until
+  // the review lap starts it over from the top.
+  function buildLearnSchedule(words){
     const events = [];
-    const pending = []; // { word, rep, dueAt }
-    let toTeach = 0;
-
-    const takeEarliestPending = () => {
-      pending.sort((a, b) => a.dueAt - b.dueAt);
-      const item = pending.shift();
-      events.push({ type: 'test', word: item.word, rep: item.rep });
-      const nextRep = item.rep + 1;
-      if(nextRep < LL_LAGS.length){
-        pending.push({ word: item.word, rep: nextRep, dueAt: events.length + LL_LAGS[nextRep] });
-      }
-    };
-
-    while(toTeach < words.length || pending.length > 0){
-      pending.sort((a, b) => a.dueAt - b.dueAt);
-      if(pending.length > 0 && pending[0].dueAt <= events.length){
-        takeEarliestPending();
-      } else if(toTeach < words.length){
-        const word = words[toTeach++];
-        events.push({ type: 'teach', word });
-        pending.push({ word, rep: 0, dueAt: events.length + LL_LAGS[0] });
-      } else {
-        takeEarliestPending(); // nothing due yet and nothing left to teach
-      }
-    }
+    words.forEach(word => events.push({ type: 'teach', word }, { type: 'quiz', word }));
+    words.forEach(word => events.push({ type: 'review', word }));
     return events;
   }
 
@@ -1940,6 +1927,7 @@
         <div class="ll-row-info">
           <div class="ll-row-english">${escapeHtml(word.english)}</div>
           <div class="ll-row-translit">${escapeHtml(word.transliteration || "")}</div>
+          <div class="ll-row-turn hidden">🎤 Your turn!</div>
         </div>
       `;
       row.addEventListener('click', () => llJumpTo(llTeachStepForWord(idx)));
@@ -1954,15 +1942,19 @@
     return at === -1 ? 0 : at;
   }
 
+  const LL_STEP_INFO = {
+    teach:  { label: '👂 New word', hint: 'Listen carefully' },
+    quiz:   { label: '🎤 Quiz',     hint: "Watch the highlighted word" },
+    review: { label: '🔁 Review',   hint: "Watch the highlighted word" },
+  };
+
   function llShowStep(){
     const step = llSchedule[llStepIndex];
-    const isTeach = step.type === 'teach';
+    const info = LL_STEP_INFO[step.type];
     const batchNo = Math.floor(llBatchStart / llBatchSize) + 1;
     const batchTotal = Math.max(1, Math.ceil(llWords.length / llBatchSize));
-    document.getElementById('llPassLabel').textContent = isTeach ? '👂 New word' : '🤔 Do you remember?';
-    document.getElementById('llPassHint').textContent = isTeach
-      ? 'Listen — then say it out loud'
-      : 'What does this word mean?';
+    document.getElementById('llPassLabel').textContent = info.label;
+    document.getElementById('llPassHint').textContent = info.hint;
     document.getElementById('llWordCount').textContent =
       `Batch ${batchNo} of ${batchTotal} · Step ${llStepIndex + 1} of ${llSchedule.length}`;
     updateProgressBar('llProgress', llStepIndex, llSchedule.length);
@@ -1973,24 +1965,37 @@
     if(activeRow) activeRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  function llSetPrompting(on){
-    document.getElementById('llPassBanner').classList.toggle('prompting', on);
-  }
   function llRevealRow(idx){
     if(llRowEls[idx]) llRowEls[idx].classList.add('revealed');
   }
   function llHideRow(idx){
     if(llRowEls[idx]) llRowEls[idx].classList.remove('revealed');
   }
-  // Rebuilds which meanings are uncovered for a given point in the schedule,
-  // so jumping backwards or forwards can't leave the list out of sync: a word
-  // shows its meaning once it has been taught, and nothing before that.
-  function llSyncRevealsTo(stepIdx){
+  function llSetRowTurn(idx, on){
+    const row = llRowEls[idx];
+    if(!row) return;
+    row.classList.toggle('your-turn', on);
+    const badge = row.querySelector('.ll-row-turn');
+    if(badge) badge.classList.toggle('hidden', !on);
+  }
+  // Rebuilds every row's state for a given point in the schedule, so jumping
+  // backwards or forwards (Previous/Next, clicking a row) can't leave the
+  // list out of sync: a word's meaning shows once it's been taught, except
+  // during its own quiz/review moment, when it's masked with "Your turn!"
+  // instead.
+  function llSyncRowsTo(stepIdx){
     const taught = new Set();
     for(let i = 0; i < stepIdx; i++){
       if(llSchedule[i].type === 'teach') taught.add(llSchedule[i].word.id);
     }
-    llRowEls.forEach((row, idx) => row.classList.toggle('revealed', taught.has(llBatch[idx].id)));
+    const step = llSchedule[stepIdx];
+    const testingWordId = step && step.type !== 'teach' ? step.word.id : null;
+    llRowEls.forEach((row, idx) => {
+      const word = llBatch[idx];
+      const isCurrentTest = word.id === testingWordId;
+      row.classList.toggle('revealed', taught.has(word.id) && !isCurrentTest);
+      llSetRowTurn(idx, isCurrentTest);
+    });
   }
 
   function llUpdatePlayPauseButton(){
@@ -1999,63 +2004,71 @@
     btn.setAttribute('aria-label', llPlaying ? 'Pause' : 'Play');
   }
 
+  // "<Arabic word> means..." — a fixed local clip, not tied to any word id,
+  // played right after the Arabic so the quiz question reads as one phrase.
+  function speakMeansAsync(){
+    return new Promise((resolve) => {
+      playLocalAudio('means')
+        .then(() => {
+          const audio = localAudioCache.get('means');
+          if(!audio){ resolve(); return; }
+          llTrackAudioUntilEnd(audio).then(resolve);
+        })
+        .catch(() => resolve());
+    });
+  }
+
   async function llRunFrom(startStep){
     const token = ++llRunToken;
     llPlaying = true;
     llUpdatePlayPauseButton();
-    llSyncRevealsTo(startStep);
+    llSyncRowsTo(startStep);
 
     for(let s = startStep; s < llSchedule.length; s++){
       llStepIndex = s;
       const step = llSchedule[s];
       const wordIdx = llBatch.indexOf(step.word);
-
-      // A test always starts with the meaning covered, even though the word
-      // was uncovered when it was taught.
-      if(step.type === 'test') llHideRow(wordIdx);
       llShowStep();
-
-      await sleep(350);
-      if(token !== llRunToken) return;
 
       if(step.type === 'teach'){
         llRevealRow(wordIdx);
-        await speakArabicAsync(step.word);
-        if(token !== llRunToken) return;
-        await sleep(200);
-        if(token !== llRunToken) return;
-        await speakEnglishAsync(step.word);
-        if(token !== llRunToken) return;
-        llSetPrompting(true);
-        await sleep(LL_ECHO_GAP_MS);
-        llSetPrompting(false);
-        if(token !== llRunToken) return;
-        // Close the step on Arabic + English, not Arabic alone: a trailing
-        // Arabic word runs straight into the next step's Arabic and the two
-        // blur together. The meaning acts as a full stop for the word.
-        await speakArabicAsync(step.word);
-        if(token !== llRunToken) return;
-        await sleep(200);
-        if(token !== llRunToken) return;
-        await speakEnglishAsync(step.word);
+        llSetRowTurn(wordIdx, false);
+        for(let rep = 1; rep <= LL_TEACH_REPEATS; rep++){
+          document.getElementById('llPassHint').textContent = `Repeat ${rep} of ${LL_TEACH_REPEATS}`;
+          await sleep(250);
+          if(token !== llRunToken) return;
+          await speakArabicAsync(step.word);
+          if(token !== llRunToken) return;
+          await sleep(200);
+          if(token !== llRunToken) return;
+          await speakEnglishAsync(step.word);
+          if(token !== llRunToken) return;
+          await sleep(450);
+          if(token !== llRunToken) return;
+        }
       } else {
+        // quiz and review behave identically — the second is just a later
+        // repeat of the first, for the whole batch at once.
+        llHideRow(wordIdx);
+        llSetRowTurn(wordIdx, true);
+        await sleep(300);
+        if(token !== llRunToken) return;
         await speakArabicAsync(step.word);
         if(token !== llRunToken) return;
-        llSetPrompting(true);
-        await sleep(LL_RECALL_GAP_MS);
-        llSetPrompting(false);
+        await speakMeansAsync();
         if(token !== llRunToken) return;
+        await sleep(LL_RECALL_GAP_MS);
+        if(token !== llRunToken) return;
+        llSetRowTurn(wordIdx, false);
         llRevealRow(wordIdx);
         await speakEnglishAsync(step.word);
+        if(token !== llRunToken) return;
+        await sleep(450);
+        if(token !== llRunToken) return;
       }
-
-      if(token !== llRunToken) return;
-      await sleep(450);
-      if(token !== llRunToken) return;
     }
 
     llPlaying = false;
-    llSetPrompting(false);
     llUpdatePlayPauseButton();
     llShowBatchDone();
   }
@@ -2073,10 +2086,9 @@
     if(idx < 0 || idx >= llSchedule.length) return;
     llRunToken++;
     llStopAudio();
-    llSetPrompting(false);
     const wasPlaying = llPlaying;
     llStepIndex = idx;
-    llSyncRevealsTo(idx);
+    llSyncRowsTo(idx);
     llShowStep();
     if(wasPlaying){
       llRunFrom(idx);
@@ -2099,7 +2111,7 @@
       llShowBatchDone();
       return;
     }
-    llSchedule = buildExpandingSchedule(llBatch);
+    llSchedule = buildLearnSchedule(llBatch);
     llBuildList();
     // Meanings stay covered until each word is taught, so the list can't be
     // read ahead of the schedule.
@@ -2123,7 +2135,6 @@
     if(llPlaying){
       llRunToken++;
       llStopAudio();
-      llSetPrompting(false);
       llPlaying = false;
       llUpdatePlayPauseButton();
     } else {
