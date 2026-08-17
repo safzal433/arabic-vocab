@@ -55,8 +55,9 @@ still works offline. A couple of notes:
 
 ### Learn
 
-- **Listen & Learn** — every word in the list is read aloud, one after
-  another, on autoplay from the top — good for just soaking in the sounds.
+- **Listen & Learn** — teaches a small batch of words (5 by default,
+  adjustable) in three passes, then hands off to a quiz on those same
+  words. See "How Listen & Learn works" below.
 - **Handwriting** — trace the Arabic word on screen with a finger (or
   mouse) to practice writing it.
 
@@ -96,16 +97,51 @@ any time afterward from the **📚 Word lists** button on the home screen.
 Every mode (flashcards, quizzes, Handwriting, Listen & Learn, Tricky Words)
 only draws from whichever list(s) are currently selected.
 
+### How Listen & Learn works
+
+Rather than reading the whole list top-to-bottom, it takes a **small batch
+of words** (5 by default — use the ＋/－ buttons to change it) and makes
+three passes over that batch:
+
+1. **👂 Listen** — hear the Arabic word, then its English meaning.
+2. **🗣️ Your turn** — hear the Arabic, then the banner turns gold for a
+   couple of seconds of silence. That's the child's cue to *say the word
+   out loud*, and then it plays again so they can check themselves.
+3. **🤔 Do you remember?** — hear the Arabic while the meanings on screen
+   are covered up (`? ? ?`), a few seconds to think, then the answer is
+   revealed and read aloud.
+
+At the end of the batch it offers to **quiz those exact words**, practice
+them again, or move on to the next batch.
+
+This is deliberately different from just repeating each word five times in
+a row. Repeating a word back-to-back makes it feel familiar without making
+it stick — the two things that actually build memory are *spacing* the
+repeats out and *actively recalling* the word instead of just re-hearing
+it. The echo and recall passes are where the real learning happens, so
+it's worth letting the silences play out rather than skipping ahead.
+
+### Review scheduling (spaced repetition)
+
+Every word quietly tracks a "box" level and a next-due date. Answer a word
+correctly and it moves up a box and won't come back around for longer
+(1 day → 2 → 4 → 8 → 16 → 30). Get it wrong and it drops back to box 0 and
+returns in the very next round. The home screen shows how many words are
+ready for review, and every mode front-loads whatever is due.
+
+This is what turns short daily sessions into long-term memory — a few
+minutes a day beats one long cram session, and the app handles deciding
+what to show when.
+
 ### Points and word coverage
 
 - **Points** — 10 points for a correct quiz answer, 5 points for a
   flashcard a player marks "I knew it!" Points show live in the header.
 - Practice and Quiz rounds cover every word in the player's selected
-  list(s) each time, in an order weighted toward whatever they're still
-  shaky on — so nothing gets left out, but weaker words tend to come up
-  earlier. Handwriting practice instead uses a smaller 10-word weighted
-  subset per round, and Listen & Learn simply steps through the selected
-  list(s) in order.
+  list(s) each time, ordered so that words due for review come first and
+  weaker words surface earlier — nothing gets left out, but the most
+  useful practice happens first if the session gets cut short.
+  Handwriting practice uses a smaller 10-word subset per round.
 
 ## Adding more words later
 

@@ -181,6 +181,7 @@
   }
   .home-lists-btn:active{ transform: scale(0.98); }
   .home-lists-edit{ font-weight:700; opacity:0.85; }
+  .home-due{ margin: -12px 4px 20px; font-size:0.85rem; color: var(--ink-soft); font-weight:700; }
 
   .new-player-card{
     background: var(--teal-pale);
@@ -409,7 +410,22 @@
 
   .ll-stage{ display:flex; flex-direction:column; align-items:center; gap:12px; padding: 6px 0 4px; }
   .ll-word-count{ color: var(--ink-soft); font-size:0.85rem; }
-  .ll-repeat-indicator{ font-weight:700; color: var(--gold-deep); font-size:0.9rem; }
+  .ll-pass-banner{
+    width:100%; max-width:480px; text-align:center;
+    background: var(--teal-pale); border-radius: var(--radius-md);
+    padding: 12px 16px; transition: background .2s ease;
+  }
+  .ll-pass-label{ font-weight:800; font-size:1.05rem; color: var(--teal-deep); }
+  .ll-pass-hint{ font-size:0.85rem; color: var(--ink-soft); margin-top:2px; }
+  /* The gold "your turn / think about it" state — the silent gap where the
+     child speaks or recalls before the answer plays. */
+  .ll-pass-banner.prompting{ background: var(--gold); animation: promptPulse 1s ease-in-out infinite; }
+  .ll-pass-banner.prompting .ll-pass-label,
+  .ll-pass-banner.prompting .ll-pass-hint{ color:#4A3200; }
+  @keyframes promptPulse{
+    0%,100%{ transform: scale(1); }
+    50%{ transform: scale(1.03); }
+  }
   .ll-controls{ display:flex; align-items:center; gap:14px; width:100%; max-width:480px; }
   .ll-play-btn{
     width:56px; height:56px; border-radius:50%; border:none; flex-shrink:0;
@@ -417,8 +433,9 @@
     display:flex; align-items:center; justify-content:center;
   }
   .ll-play-btn:active{ transform: scale(0.92); }
-  .ll-done{ text-align:center; padding:10px 0; }
+  .ll-done{ text-align:center; padding:10px 0; width:100%; max-width:480px; }
   .ll-done p{ font-size:1.05rem; font-weight:700; color: var(--teal-deep); margin-bottom:14px; }
+  .ll-done-actions{ display:flex; flex-direction:column; gap:10px; }
 
   .ll-list{ display:flex; flex-direction:column; gap:10px; margin-top:20px; }
   .ll-row{
@@ -429,13 +446,22 @@
   }
   .ll-row:active{ transform: scale(0.98); }
   .ll-row-arabic{ font-size:1.4rem; min-width: 90px; }
-  .ll-row-info{ flex:1; }
+  .ll-row-info{ flex:1; position:relative; }
   .ll-row-english{ font-weight:700; color: var(--ink); }
   .ll-row-translit{ font-size:0.8rem; color: var(--ink-soft); }
   .ll-row.active{
     background: var(--teal-pale); border-color: var(--teal);
   }
   .ll-row.active .ll-row-english{ color: var(--teal-deep); }
+  /* Recall pass: meanings stay covered until each word is revealed —
+     if the answer is visible on screen there's no retrieval happening.
+     visibility (not display) keeps the row heights from jumping. */
+  .ll-list.ll-hide-meaning .ll-row:not(.revealed) .ll-row-english,
+  .ll-list.ll-hide-meaning .ll-row:not(.revealed) .ll-row-translit{ visibility:hidden; }
+  .ll-list.ll-hide-meaning .ll-row:not(.revealed) .ll-row-info::after{
+    content:"? ? ?"; position:absolute; left:0; top:50%; transform:translateY(-50%);
+    color: var(--ink-soft); font-weight:800; letter-spacing:0.16em;
+  }
 
   /* ---------- Round summary ---------- */
   .summary-wrap{ text-align:center; padding: 20px 10px; }
@@ -550,6 +576,7 @@
         📚 <span id="homeListsSummary">Word lists</span>
         <span class="home-lists-edit">Change ›</span>
       </button>
+      <p class="home-due" id="homeDue"></p>
 
       <div class="mode-section">
         <h3 class="mode-section-title">Learn</h3>
@@ -709,24 +736,31 @@
         <div class="progress-track"><div class="progress-fill" id="llProgress"></div></div>
       </div>
       <div class="ll-repeat-control">
-        <span class="ll-repeat-label">Repeat each word</span>
+        <span class="ll-repeat-label">Words per batch</span>
         <div class="ll-stepper">
-          <button class="ll-stepper-btn" id="llRepeatMinus" aria-label="Fewer repeats">－</button>
-          <span class="ll-repeat-value" id="llRepeatValue">5</span>
-          <button class="ll-stepper-btn" id="llRepeatPlus" aria-label="More repeats">＋</button>
+          <button class="ll-stepper-btn" id="llBatchMinus" aria-label="Fewer words">－</button>
+          <span class="ll-repeat-value" id="llBatchValue">5</span>
+          <button class="ll-stepper-btn" id="llBatchPlus" aria-label="More words">＋</button>
         </div>
       </div>
       <div class="ll-stage">
-        <div class="ll-word-count" id="llWordCount">Word 1 of 20</div>
-        <div class="ll-repeat-indicator" id="llRepeatIndicator">Repeat 1 of 5</div>
+        <div class="ll-pass-banner" id="llPassBanner">
+          <div class="ll-pass-label" id="llPassLabel">Listen</div>
+          <div class="ll-pass-hint" id="llPassHint">Listen carefully</div>
+        </div>
+        <div class="ll-word-count" id="llWordCount">Batch 1 · Word 1 of 5</div>
         <div class="ll-controls">
           <button class="hw-nav-btn" id="llPrevBtn" aria-label="Previous word">◀ Previous</button>
           <button class="ll-play-btn" id="llPlayPauseBtn" aria-label="Pause">⏸</button>
           <button class="hw-nav-btn" id="llNextBtn" aria-label="Next word">Next ▶</button>
         </div>
         <div class="ll-done hidden" id="llDone">
-          <p>🎉 You've heard every word in the list!</p>
-          <button class="btn btn-primary" id="llRestartBtn">Restart from the top</button>
+          <p id="llDoneMsg">🎉 Batch complete!</p>
+          <div class="ll-done-actions">
+            <button class="btn btn-primary" id="llQuizBatchBtn">✅ Quiz these words</button>
+            <button class="btn btn-ghost" id="llReplayBatchBtn">↺ Practice these again</button>
+            <button class="btn btn-ghost" id="llNextBatchBtn">Next words ▶</button>
+          </div>
         </div>
       </div>
       <div class="ll-list" id="llList"></div>
@@ -802,13 +836,45 @@
   }
   function getWordStat(playerName, wordId){
     const p = DB.players[playerName];
-    if(!p.stats[wordId]) p.stats[wordId] = { seen: 0, correct: 0 };
+    if(!p.stats[wordId]) p.stats[wordId] = { seen: 0, correct: 0, box: 0, due: 0, lastSeen: 0 };
     return p.stats[wordId];
   }
+
+  /* ---- Spaced repetition (Leitner-style scheduling) ----
+     Every word carries a "box" level and a "due" date. Answer it right
+     and it moves up a box and won't come back around for longer; get it
+     wrong and it drops to box 0, so it returns in the very next round.
+     Round building then front-loads whatever is due. This is the piece
+     that actually moves words into long-term memory — spreading repeats
+     across days beats repeating a word five times in a row.
+
+     Older saved players only have {seen, correct}; the `|| 0` fallbacks
+     and isWordDue()'s missing-due check mean they simply start at box 0
+     and are treated as due, with no migration step needed. ---- */
+  const SRS_INTERVAL_DAYS = [0, 1, 2, 4, 8, 16, 30];
+  const DAY_MS = 24 * 60 * 60 * 1000;
+
+  function scheduleWord(stat, wasCorrect){
+    const maxBox = SRS_INTERVAL_DAYS.length - 1;
+    stat.box = wasCorrect ? Math.min(maxBox, (stat.box || 0) + 1) : 0;
+    stat.lastSeen = Date.now();
+    stat.due = stat.lastSeen + SRS_INTERVAL_DAYS[stat.box] * DAY_MS;
+  }
+  function isWordDue(stat){
+    if(!stat || !stat.seen) return true; // never practiced counts as due
+    return !stat.due || stat.due <= Date.now();
+  }
+  function countDueWords(){
+    if(!currentPlayer) return 0;
+    const stats = DB.players[currentPlayer].stats;
+    return activeWordBank().filter(w => isWordDue(stats[w.id])).length;
+  }
+
   function recordAnswer(playerName, wordId, wasCorrect){
     const stat = getWordStat(playerName, wordId);
     stat.seen += 1;
     if(wasCorrect) stat.correct += 1;
+    scheduleWord(stat, wasCorrect);
     saveData(DB);
   }
   function addPoints(playerName, pts){
@@ -828,14 +894,16 @@
   let currentMode = null; // 'ar-en' | 'en-ar' | 'mc' | 'mc-en-ar' | 'mixed' | 'handwriting'
   let cardDirection = null; // 'ar-en' | 'en-ar' resolved per card ('mixed' picks randomly each card)
 
-  // Listen & Learn state (this mode ignores roundQueue — it steps through
-  // the player's active word list in order, not a weighted 10-word round)
-  let llWords = []; // activeWordBank(), snapshotted when the mode starts
-  let llWordIndex = 0;
-  let llRepeatIndex = 0;
-  let llRepeatCount = 5;
+  // Listen & Learn state (this mode ignores roundQueue — it walks the
+  // player's active words in small batches, three passes per batch)
+  let llWords = [];      // whole active bank, due-priority ordered, set on entry
+  let llBatch = [];      // the handful of words currently being taught
+  let llBatchStart = 0;  // index into llWords where the current batch begins
+  let llBatchSize = 5;
+  let llPass = 0;        // index into LL_PASSES
+  let llWordIndex = 0;   // index within llBatch
   let llPlaying = false;
-  let llRunToken = 0; // bumped to abort the in-flight auto-play loop
+  let llRunToken = 0;    // bumped to abort the in-flight auto-play loop
 
   const AVATAR_COLORS = ["#1F6F72", "#E3A73B", "#E4785A", "#4E9B72", "#5B7FBF", "#B06CA8"];
   function colorForName(name){
@@ -1336,6 +1404,10 @@
   function goHome(){
     document.getElementById('homeGreeting').textContent = `Hi, ${currentPlayer}! 👋`;
     updateHomeListsSummary();
+    const due = countDueWords();
+    document.getElementById('homeDue').textContent = due > 0
+      ? `⏰ ${due} word${due === 1 ? '' : 's'} ready for review`
+      : `✅ All caught up — nothing due for review right now.`;
     showScreen('home');
   }
   document.querySelectorAll('.mode-card[data-mode]').forEach(btn => {
@@ -1368,11 +1440,20 @@
     return 1 + (1 - accuracy) * 3;
   }
   function buildRoundQueue(size){
-    const pool = activeWordBank();
+    const stats = DB.players[currentPlayer].stats;
+    const duePool = [];
+    const restPool = [];
+    activeWordBank().forEach(w => {
+      (isWordDue(stats[w.id]) ? duePool : restPool).push(w);
+    });
+
     const chosen = [];
-    const n = Math.min(size, pool.length);
-    for(let i=0;i<n;i++){
-      const weights = pool.map(w => wordWeight(currentPlayer, w.id));
+    const n = Math.min(size, duePool.length + restPool.length);
+
+    // Words that are due come first, picked weighted-random so the ones
+    // a player is weakest on tend to surface earliest in the round.
+    while(chosen.length < n && duePool.length > 0){
+      const weights = duePool.map(w => wordWeight(currentPlayer, w.id));
       const total = weights.reduce((a,b)=>a+b,0);
       let r = Math.random() * total;
       let idx = 0;
@@ -1380,16 +1461,30 @@
         r -= weights[idx];
         if(r <= 0) break;
       }
-      idx = Math.min(idx, pool.length - 1);
-      chosen.push(pool[idx]);
-      pool.splice(idx,1);
+      idx = Math.min(idx, duePool.length - 1);
+      chosen.push(duePool[idx]);
+      duePool.splice(idx,1);
+    }
+
+    // Then top up with words that aren't due yet, soonest-due first, so a
+    // full-list round still covers everything without losing the ordering.
+    if(chosen.length < n){
+      restPool.sort((a,b) => {
+        const da = stats[a.id] && stats[a.id].due ? stats[a.id].due : 0;
+        const db = stats[b.id] && stats[b.id].due ? stats[b.id].due : 0;
+        return da - db;
+      });
+      chosen.push(...restPool.slice(0, n - chosen.length));
     }
     return chosen;
   }
 
-  function startRound(mode){
+  // Starts a round over an explicit set of words. Listen & Learn uses this
+  // to quiz the exact batch it just taught, and Tricky Words to drill its
+  // own filtered set; startRound() below is the normal weighted entry point.
+  function startRoundWithWords(mode, words){
     currentMode = mode;
-    roundQueue = buildRoundQueue(mode === 'handwriting' ? HANDWRITING_ROUND_SIZE : activeWordBank().length);
+    roundQueue = words;
     roundIndex = 0;
     roundPoints = 0;
     roundCorrect = 0;
@@ -1403,6 +1498,11 @@
       showScreen('flash');
       loadFlashCard();
     }
+  }
+
+  function startRound(mode){
+    const size = mode === 'handwriting' ? HANDWRITING_ROUND_SIZE : activeWordBank().length;
+    startRoundWithWords(mode, buildRoundQueue(size));
   }
 
   function finishRound(){
@@ -1746,18 +1846,39 @@
   /* ============================================================
      LISTEN & LEARN MODE
      ============================================================
-     Steps through the player's active word list in order (not a weighted
-     round), reading the Arabic word then its English meaning aloud,
-     repeated llRepeatCount times per word, before moving to the next.
-     It's pure exposure — no quiz, no points — so a player can just sit
-     back and listen, or use Previous/Next to jump around freely.
+     Teaches a small batch of words (llBatchSize) at a time rather than
+     playing the whole list start-to-finish, and makes three passes over
+     each batch:
+
+       1. Listen  — hear the Arabic, then the English meaning.
+       2. Echo    — hear the Arabic, then a silent gap to say it aloud,
+                    then hear it again to check against.
+       3. Recall  — hear the Arabic with the meaning hidden on screen,
+                    a gap to think, then the answer is revealed.
+
+     That structure is doing three things the old "repeat 5x in a row"
+     version wasn't: spacing the repeats of a word across other words
+     instead of stacking them, making the child *produce* the word
+     (echo) and *retrieve* the meaning (recall) instead of only
+     re-hearing it, and keeping the batch small enough to actually hold
+     onto. The batch then hands off to a real quiz, and every answer
+     there feeds the SRS scheduler.
      ============================================================ */
-  let llRowEls = []; // one row per llWords entry, built once per visit to the mode
+  const LL_PASSES = [
+    { id: 'listen', label: '👂 Listen',           hint: 'Listen to the word and what it means' },
+    { id: 'echo',   label: '🗣️ Your turn',        hint: 'Say the word out loud!' },
+    { id: 'recall', label: '🤔 Do you remember?', hint: 'What does this word mean?' },
+  ];
+  const LL_ECHO_GAP_MS = 2600;   // silence for the child to repeat the word
+  const LL_RECALL_GAP_MS = 3200; // silence to retrieve the meaning before the reveal
+
+  let llRowEls = []; // one row per llBatch entry, rebuilt for each batch
 
   function llBuildList(){
     const container = document.getElementById('llList');
     container.innerHTML = "";
-    llRowEls = llWords.map((word, idx) => {
+    container.classList.remove('ll-hide-meaning');
+    llRowEls = llBatch.map((word, idx) => {
       const row = document.createElement('button');
       row.className = 'll-row';
       row.innerHTML = `
@@ -1774,16 +1895,29 @@
   }
 
   function llShowWord(){
-    document.getElementById('llWordCount').textContent = `Word ${llWordIndex + 1} of ${llWords.length}`;
-    updateProgressBar('llProgress', llWordIndex, llWords.length);
+    const pass = LL_PASSES[llPass];
+    const batchNo = Math.floor(llBatchStart / llBatchSize) + 1;
+    const batchTotal = Math.max(1, Math.ceil(llWords.length / llBatchSize));
+    document.getElementById('llPassLabel').textContent = pass.label;
+    document.getElementById('llPassHint').textContent = pass.hint;
+    document.getElementById('llWordCount').textContent =
+      `Batch ${batchNo} of ${batchTotal} · Word ${llWordIndex + 1} of ${llBatch.length}`;
+    updateProgressBar('llProgress', llPass * llBatch.length + llWordIndex, LL_PASSES.length * llBatch.length);
     document.getElementById('llDone').classList.add('hidden');
+    document.getElementById('llList').classList.toggle('ll-hide-meaning', pass.id === 'recall');
     llRowEls.forEach((row, idx) => row.classList.toggle('active', idx === llWordIndex));
     const activeRow = llRowEls[llWordIndex];
     if(activeRow) activeRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
-  function llUpdateRepeatIndicator(){
-    document.getElementById('llRepeatIndicator').textContent = `Repeat ${llRepeatIndex + 1} of ${llRepeatCount}`;
+  function llSetPrompting(on){
+    document.getElementById('llPassBanner').classList.toggle('prompting', on);
+  }
+  function llRevealRow(idx){
+    if(llRowEls[idx]) llRowEls[idx].classList.add('revealed');
+  }
+  function llResetReveals(){
+    llRowEls.forEach(row => row.classList.remove('revealed'));
   }
 
   function llUpdatePlayPauseButton(){
@@ -1792,60 +1926,108 @@
     btn.setAttribute('aria-label', llPlaying ? 'Pause' : 'Play');
   }
 
-  async function llRunFrom(startWordIdx, startRepeatIdx){
+  async function llRunFrom(startPass, startWordIdx){
     const token = ++llRunToken;
     llPlaying = true;
     llUpdatePlayPauseButton();
 
-    for(let i = startWordIdx; i < llWords.length; i++){
-      llWordIndex = i;
-      llShowWord();
-      const firstRepeat = (i === startWordIdx) ? startRepeatIdx : 0;
-      for(let r = firstRepeat; r < llRepeatCount; r++){
-        llRepeatIndex = r;
-        llUpdateRepeatIndicator();
-        await sleep(300);
+    for(let p = startPass; p < LL_PASSES.length; p++){
+      llPass = p;
+      // Clear reveals when the recall pass genuinely starts over — not when
+      // resuming from a pause partway through it, which would re-hide words
+      // the child has already worked through.
+      if(LL_PASSES[p].id === 'recall' && (p !== startPass || startWordIdx === 0)) llResetReveals();
+
+      for(let i = (p === startPass ? startWordIdx : 0); i < llBatch.length; i++){
+        llWordIndex = i;
+        llShowWord();
+        const word = llBatch[i];
+
+        await sleep(350);
         if(token !== llRunToken) return;
-        await speakArabicAsync(llWords[i]);
+        await speakArabicAsync(word);
         if(token !== llRunToken) return;
-        await sleep(250);
+
+        if(LL_PASSES[p].id === 'listen'){
+          await sleep(250);
+          if(token !== llRunToken) return;
+          await speakEnglishAsync(word.english);
+        } else if(LL_PASSES[p].id === 'echo'){
+          llSetPrompting(true);
+          await sleep(LL_ECHO_GAP_MS);
+          llSetPrompting(false);
+          if(token !== llRunToken) return;
+          await speakArabicAsync(word);
+        } else {
+          llSetPrompting(true);
+          await sleep(LL_RECALL_GAP_MS);
+          llSetPrompting(false);
+          if(token !== llRunToken) return;
+          llRevealRow(i);
+          await speakEnglishAsync(word.english);
+        }
+
         if(token !== llRunToken) return;
-        await speakEnglishAsync(llWords[i].english);
-        if(token !== llRunToken) return;
-        await sleep(450);
+        await sleep(500);
         if(token !== llRunToken) return;
       }
     }
 
     llPlaying = false;
+    llSetPrompting(false);
     llUpdatePlayPauseButton();
+    llShowBatchDone();
+  }
+
+  function llShowBatchDone(){
+    const isLastBatch = llBatchStart + llBatchSize >= llWords.length;
+    document.getElementById('llDoneMsg').textContent = isLastBatch
+      ? "🎉 That's every word in your lists! Ready to try them?"
+      : "🎉 Batch done! Ready to try these?";
+    document.getElementById('llNextBatchBtn').classList.toggle('hidden', isLastBatch);
     document.getElementById('llDone').classList.remove('hidden');
   }
 
   function llJumpTo(idx){
-    if(idx < 0 || idx >= llWords.length) return;
+    if(idx < 0 || idx >= llBatch.length) return;
     llRunToken++;
     llStopAudio();
+    llSetPrompting(false);
     const wasPlaying = llPlaying;
     llWordIndex = idx;
-    llRepeatIndex = 0;
     llShowWord();
-    llUpdateRepeatIndicator();
     if(wasPlaying){
-      llRunFrom(idx, 0);
+      llRunFrom(llPass, idx);
     } else {
       llPlaying = false;
       llUpdatePlayPauseButton();
     }
   }
 
+  function llStartBatch(startIdx){
+    llRunToken++;
+    llStopAudio();
+    llBatchStart = Math.max(0, startIdx);
+    llBatch = llWords.slice(llBatchStart, llBatchStart + llBatchSize);
+    llPass = 0;
+    llWordIndex = 0;
+    if(llBatch.length === 0){
+      llPlaying = false;
+      llUpdatePlayPauseButton();
+      llShowBatchDone();
+      return;
+    }
+    llBuildList();
+    llRunFrom(0, 0);
+  }
+
   function startListenMode(){
     showScreen('listen');
-    llWords = activeWordBank();
-    llBuildList();
-    llRepeatCount = 5;
-    document.getElementById('llRepeatValue').textContent = llRepeatCount;
-    llRunFrom(0, 0);
+    // buildRoundQueue gives us the whole active bank already ordered by
+    // what's due, so the earliest batches are the words needing review.
+    llWords = buildRoundQueue(activeWordBank().length);
+    document.getElementById('llBatchValue').textContent = llBatchSize;
+    llStartBatch(0);
   }
   document.getElementById('listenModeBtn').addEventListener('click', startListenMode);
 
@@ -1855,26 +2037,29 @@
     if(llPlaying){
       llRunToken++;
       llStopAudio();
+      llSetPrompting(false);
       llPlaying = false;
       llUpdatePlayPauseButton();
     } else {
-      llRunFrom(llWordIndex, llRepeatIndex);
+      llRunFrom(llPass, llWordIndex);
     }
   });
   document.getElementById('llPrevBtn').addEventListener('click', () => llJumpTo(llWordIndex - 1));
   document.getElementById('llNextBtn').addEventListener('click', () => llJumpTo(llWordIndex + 1));
-  document.getElementById('llRestartBtn').addEventListener('click', () => {
-    document.getElementById('llDone').classList.add('hidden');
-    llRunFrom(0, 0);
+
+  document.getElementById('llQuizBatchBtn').addEventListener('click', () => {
+    startRoundWithWords('mc', shuffle(llBatch.slice()));
   });
-  document.getElementById('llRepeatMinus').addEventListener('click', () => {
-    llRepeatCount = Math.max(1, llRepeatCount - 1);
-    document.getElementById('llRepeatValue').textContent = llRepeatCount;
-  });
-  document.getElementById('llRepeatPlus').addEventListener('click', () => {
-    llRepeatCount = Math.min(10, llRepeatCount + 1);
-    document.getElementById('llRepeatValue').textContent = llRepeatCount;
-  });
+  document.getElementById('llReplayBatchBtn').addEventListener('click', () => llStartBatch(llBatchStart));
+  document.getElementById('llNextBatchBtn').addEventListener('click', () => llStartBatch(llBatchStart + llBatchSize));
+
+  function llSetBatchSize(size){
+    llBatchSize = Math.max(3, Math.min(8, size));
+    document.getElementById('llBatchValue').textContent = llBatchSize;
+    llStartBatch(llBatchStart); // rebuild the current batch at the new size
+  }
+  document.getElementById('llBatchMinus').addEventListener('click', () => llSetBatchSize(llBatchSize - 1));
+  document.getElementById('llBatchPlus').addEventListener('click', () => llSetBatchSize(llBatchSize + 1));
 
   /* ============================================================
      WEAK WORDS
@@ -1898,13 +2083,7 @@
       alert("No tricky words yet! Keep practicing, and any words you're still learning (70% or under) will show up here.");
       return;
     }
-    currentMode = 'mixed';
-    roundQueue = queue;
-    roundIndex = 0;
-    roundPoints = 0;
-    roundCorrect = 0;
-    showScreen('flash');
-    loadFlashCard();
+    startRoundWithWords('mixed', queue);
   }
 
   function renderWeakWords(){
