@@ -113,6 +113,7 @@
   }
 
   .screen-title{ margin: 4px 4px 18px; font-size: 1.4rem; color: var(--teal-deep); }
+  .mode-title{ margin: 4px 4px 10px; font-size: 1.15rem; }
   .screen-sub{ margin: -12px 4px 20px; color: var(--ink-soft); font-size: 0.95rem; }
 
   /* ---------- Player select ---------- */
@@ -497,8 +498,8 @@
     font-size:13px; background: var(--panel); opacity:0.35;
     transition: opacity .2s ease, background .2s ease, transform .2s ease;
   }
-  .ll-icon.done{ opacity:1; background: var(--teal-pale); }
-  .ll-icon-speak.done{ background: var(--leaf-pale); }
+  .ll-icon.done{ opacity:1; background: var(--teal); }
+  .ll-icon-speak.done{ background: var(--leaf); }
   .ll-icon.active{
     opacity:1; background: var(--gold); transform: scale(1.18);
     animation: promptPulse 0.8s ease-in-out infinite;
@@ -697,6 +698,7 @@
   <!-- SCREEN: Flashcards -->
   <section id="screen-flash" class="hidden">
     <div class="panel">
+      <h2 class="screen-title mode-title" id="flashTitle">Flashcards</h2>
       <div class="game-topbar">
         <button class="back-btn" id="flashBackBtn" aria-label="Back">←</button>
         <div class="progress-track"><div class="progress-fill" id="flashProgress"></div></div>
@@ -729,10 +731,16 @@
   <!-- SCREEN: Multiple choice -->
   <section id="screen-mc" class="hidden">
     <div class="panel">
+      <h2 class="screen-title mode-title" id="mcTitle">Listen &amp; Choose</h2>
       <div class="game-topbar">
         <button class="back-btn" id="mcBackBtn" aria-label="Back">←</button>
         <div class="progress-track"><div class="progress-fill" id="mcProgress"></div></div>
         <div class="round-points">⭐ <span id="mcRoundPoints">0</span></div>
+      </div>
+      <div class="ll-phase-tabs hidden" id="mcPhaseTabs">
+        <button class="ll-phase-tab" id="mcPhaseListenBtn">👂 Listen</button>
+        <button class="ll-phase-tab" id="mcPhaseReviewBtn">🔁 Review</button>
+        <button class="ll-phase-tab active" id="mcPhaseQuizBtn">🎤 Quiz</button>
       </div>
       <div class="mc-prompt">
         <div class="mc-prompt-word hidden" id="mcPromptWord"></div>
@@ -746,6 +754,7 @@
   <!-- SCREEN: Handwriting -->
   <section id="screen-handwriting" class="hidden">
     <div class="panel">
+      <h2 class="screen-title mode-title">Handwriting</h2>
       <div class="game-topbar">
         <button class="back-btn" id="hwBackBtn" aria-label="Back">←</button>
         <div class="progress-track"><div class="progress-fill" id="hwProgress"></div></div>
@@ -776,6 +785,7 @@
   <!-- SCREEN: Listen & Learn -->
   <section id="screen-listen" class="hidden">
     <div class="panel">
+      <h2 class="screen-title mode-title">Listen &amp; Learn</h2>
       <div class="game-topbar">
         <button class="back-btn" id="llBackBtn" aria-label="Back">←</button>
         <div class="progress-track"><div class="progress-fill" id="llProgress"></div></div>
@@ -1577,6 +1587,14 @@
     return chosen;
   }
 
+  const MODE_DISPLAY_NAMES = {
+    'ar-en': 'Flashcards: Arabic → English',
+    'en-ar': 'Flashcards: English → Arabic',
+    'mixed': 'Flashcards: Mixed',
+    'mc': 'Listen & Choose: Arabic → English',
+    'mc-en-ar': 'Listen & Choose: English → Arabic',
+  };
+
   // Starts a round over an explicit set of words. Listen & Learn uses this
   // to quiz the exact batch it just taught, and Tricky Words to drill its
   // own filtered set; startRound() below is the normal weighted entry point.
@@ -1587,12 +1605,18 @@
     roundPoints = 0;
     roundCorrect = 0;
     if(mode === 'mc' || mode === 'mc-en-ar'){
+      document.getElementById('mcTitle').textContent = MODE_DISPLAY_NAMES[mode] || 'Listen & Choose';
+      // Only a batch quiz launched from Listen & Learn's Quiz tab gets the
+      // phase tabs — a quiz started from the home screen has no "batch" to
+      // switch back into.
+      document.getElementById('mcPhaseTabs').classList.toggle('hidden', !llReturnAfterQuiz);
       showScreen('mc');
       loadMcQuestion();
     } else if(mode === 'handwriting'){
       showScreen('handwriting');
       loadHandwritingWord();
     } else {
+      document.getElementById('flashTitle').textContent = MODE_DISPLAY_NAMES[mode] || 'Flashcards';
       showScreen('flash');
       loadFlashCard();
     }
@@ -1610,7 +1634,7 @@
     // instead of the generic summary + home button.
     if(llReturnAfterQuiz){
       llReturnAfterQuiz = false;
-      llShowBatchDone(`✅ Quiz done — ${roundCorrect}/${total} correct, +${roundPoints} points!`);
+      llShowBatchDone(`✅ Quiz done — ${roundCorrect}/${total} correct, +${roundPoints} points!`, true);
       return;
     }
     document.getElementById('summaryTitle').textContent = `Nice work, ${currentPlayer}!`;
@@ -2204,7 +2228,7 @@
     llShowBatchDone();
   }
 
-  function llShowBatchDone(message){
+  function llShowBatchDone(message, fromQuiz){
     // Always land back on the Listen screen — this also gets called after a
     // batch-launched quiz finishes, which happens on the MC screen.
     showScreen('listen');
@@ -2213,7 +2237,14 @@
       ? "🎉 That's every word in your lists! Ready to try them?"
       : "🎉 Batch done! Ready to try these?");
     document.getElementById('llNextBatchBtn').classList.toggle('hidden', isLastBatch);
+    // Just took the quiz — no need to immediately offer it again.
+    document.getElementById('llQuizBatchBtn').classList.toggle('hidden', !!fromQuiz);
     document.getElementById('llDone').classList.remove('hidden');
+    if(fromQuiz){
+      ['llPhaseListenBtn', 'llPhaseReviewBtn', 'llPhaseQuizBtn'].forEach(id => {
+        document.getElementById(id).classList.toggle('active', id === 'llPhaseQuizBtn');
+      });
+    }
   }
 
   function llJumpTo(idx){
@@ -2303,6 +2334,17 @@
   document.getElementById('llQuizBatchBtn').addEventListener('click', llStartBatchQuiz);
   document.getElementById('llReplayBatchBtn').addEventListener('click', () => llStartBatch(llBatchStart));
   document.getElementById('llNextBatchBtn').addEventListener('click', () => llStartBatch(llBatchStart + llBatchSize));
+
+  // Same Listen/Review/Quiz tabs, shown on the MC screen only when the quiz
+  // was launched from Listen & Learn's batch flow (see startRoundWithWords),
+  // so a player can hop back into Listen or Review without fully exiting.
+  function llSwitchToPhaseFromQuiz(type){
+    llReturnAfterQuiz = false;
+    showScreen('listen');
+    llJumpToPhase(type);
+  }
+  document.getElementById('mcPhaseListenBtn').addEventListener('click', () => llSwitchToPhaseFromQuiz('teach'));
+  document.getElementById('mcPhaseReviewBtn').addEventListener('click', () => llSwitchToPhaseFromQuiz('review'));
 
   function llSetBatchSize(size){
     llBatchSize = Math.max(3, Math.min(8, size));
