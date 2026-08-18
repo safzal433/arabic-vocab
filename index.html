@@ -452,6 +452,13 @@
     transition: background .2s ease, border-color .2s ease, transform .1s ease;
   }
   .ll-row:active{ transform: scale(0.98); }
+  .ll-row-num{
+    width:24px; height:24px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:0.78rem; font-weight:700; color: var(--ink-soft);
+    background: var(--panel);
+  }
+  .ll-row.active .ll-row-num{ color: var(--teal-deep); }
   .ll-row-arabic{ font-size:1.4rem; min-width: 90px; }
   .ll-row-info{ flex:1; position:relative; }
   .ll-row-english{ font-weight:700; color: var(--ink); }
@@ -2021,6 +2028,7 @@
       const row = document.createElement('button');
       row.className = 'll-row';
       row.innerHTML = `
+        <div class="ll-row-num">${idx + 1}</div>
         <div class="ll-row-arabic arabic">${escapeHtml(word.arabic)}</div>
         <div class="ll-row-info">
           <div class="ll-row-english">${escapeHtml(word.english)}</div>
@@ -2084,6 +2092,7 @@
       `Batch ${batchNo} of ${batchTotal} · Step ${llStepIndex + 1} of ${llSchedule.length}`;
     updateProgressBar('llProgress', llStepIndex, llSchedule.length);
     document.getElementById('llDone').classList.add('hidden');
+    document.getElementById('llList').classList.remove('hidden');
     const activeIdx = llBatch.indexOf(step.word);
     llRowEls.forEach((row, idx) => row.classList.toggle('active', idx === activeIdx));
     const activeRow = llRowEls[activeIdx];
@@ -2240,6 +2249,9 @@
     // Just took the quiz — no need to immediately offer it again.
     document.getElementById('llQuizBatchBtn').classList.toggle('hidden', !!fromQuiz);
     document.getElementById('llDone').classList.remove('hidden');
+    // The row list below is redundant clutter right under the quiz result --
+    // the player just went through every word, they don't need to re-scan it.
+    document.getElementById('llList').classList.toggle('hidden', !!fromQuiz);
     if(fromQuiz){
       ['llPhaseListenBtn', 'llPhaseReviewBtn', 'llPhaseQuizBtn'].forEach(id => {
         document.getElementById(id).classList.toggle('active', id === 'llPhaseQuizBtn');
