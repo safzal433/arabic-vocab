@@ -479,6 +479,23 @@
     position:absolute; left:0; top:50%; transform:translateY(-50%);
     font-weight:800; color:#4A3200; white-space:nowrap;
   }
+  /* Per-word progress dots: 👂👂👂🗣️ track the three teach repeats and the
+     quiz/review "your turn" moment, so a glance at any row shows exactly
+     where that word is in its own journey — not reached yet (dim), in
+     progress right now (pulsing gold), or already done (filled in). */
+  .ll-row-icons{ display:flex; gap:4px; flex-shrink:0; }
+  .ll-icon{
+    width:26px; height:26px; border-radius:50%; flex-shrink:0;
+    display:flex; align-items:center; justify-content:center;
+    font-size:13px; background: var(--panel); opacity:0.35;
+    transition: opacity .2s ease, background .2s ease, transform .2s ease;
+  }
+  .ll-icon.done{ opacity:1; background: var(--teal-pale); }
+  .ll-icon-speak.done{ background: var(--leaf-pale); }
+  .ll-icon.active{
+    opacity:1; background: var(--gold); transform: scale(1.18);
+    animation: promptPulse 0.8s ease-in-out infinite;
+  }
 
   /* ---------- Round summary ---------- */
   .summary-wrap{ text-align:center; padding: 20px 10px; }
@@ -1945,7 +1962,8 @@
   const LL_TEACH_REPEATS = 3;    // times each word's Arabic+English is repeated while teaching
   const LL_RECALL_GAP_MS = 3000; // silence to answer before the meaning is revealed
 
-  let llRowEls = []; // one row per llBatch entry, rebuilt for each batch
+  let llRowEls = [];     // one row per llBatch entry, rebuilt for each batch
+  let llRowIconEls = []; // one [👂,👂,👂,🗣️] icon set per row, parallel to llRowEls
 
   // Linear schedule: teach+quiz each word in order, then review every word
   // once more. No interleaving — the active row only moves forward until
@@ -1961,7 +1979,9 @@
     const container = document.getElementById('llList');
     container.innerHTML = "";
     container.classList.remove('ll-hide-meaning');
-    llRowEls = llBatch.map((word, idx) => {
+    llRowEls = [];
+    llRowIconEls = [];
+    llBatch.forEach((word, idx) => {
       const row = document.createElement('button');
       row.className = 'll-row';
       row.innerHTML = `
@@ -1971,11 +1991,28 @@
           <div class="ll-row-translit">${escapeHtml(word.transliteration || "")}</div>
           <div class="ll-row-turn hidden">🎤 Your turn!</div>
         </div>
+        <div class="ll-row-icons" aria-hidden="true">
+          <span class="ll-icon">👂</span>
+          <span class="ll-icon">👂</span>
+          <span class="ll-icon">👂</span>
+          <span class="ll-icon ll-icon-speak">🗣️</span>
+        </div>
       `;
       row.addEventListener('click', () => llJumpTo(llTeachStepForWord(idx)));
       container.appendChild(row);
-      return row;
+      llRowEls.push(row);
+      llRowIconEls.push([...row.querySelectorAll('.ll-icon')]);
     });
+  }
+
+  // state: 'active' (currently happening), 'done' (already happened), or ''
+  // (not reached yet) for icon iconIdx (0-2 = the three listen repeats,
+  // 3 = the speak/quiz icon) on the row for word wordIdx.
+  function llSetIconState(wordIdx, iconIdx, state){
+    const icon = llRowIconEls[wordIdx] && llRowIconEls[wordIdx][iconIdx];
+    if(!icon) return;
+    icon.classList.remove('active', 'done');
+    if(state) icon.classList.add(state);
   }
 
   function llTeachStepForWord(wordIdx){
@@ -2041,6 +2078,15 @@
       const isCurrentTest = word.id === testingWordId;
       row.classList.toggle('revealed', revealed.has(word.id) && !isCurrentTest);
       llSetRowTurn(idx, isCurrentTest);
+
+      // Icons reflect how far THIS word's own journey has gotten by stepIdx:
+      // the three listen icons light up once its teach step is fully past,
+      // the speak icon once any test (quiz or review) of it has completed.
+      const teachIdx = llSchedule.findIndex(s => s.type === 'teach' && s.word.id === word.id);
+      const teachDone = teachIdx !== -1 && stepIdx > teachIdx;
+      for(let r = 0; r < LL_TEACH_REPEATS; r++) llSetIconState(idx, r, teachDone ? 'done' : '');
+      const testDone = llSchedule.some((s, i) => i < stepIdx && s.type !== 'teach' && s.word.id === word.id);
+      llSetIconState(idx, LL_TEACH_REPEATS, testDone ? 'done' : '');
     });
   }
 
@@ -2090,6 +2136,7 @@
         llSetRowTurn(wordIdx, false);
         for(let rep = 1; rep <= LL_TEACH_REPEATS; rep++){
           document.getElementById('llPassHint').textContent = `Repeat ${rep} of ${LL_TEACH_REPEATS}`;
+          llSetIconState(wordIdx, rep - 1, 'active');
           await sleep(250);
           if(token !== llRunToken) return;
           await speakArabicAsync(step.word);
@@ -2098,14 +2145,18 @@
           if(token !== llRunToken) return;
           await speakEnglishAsync(step.word);
           if(token !== llRunToken) return;
+          llSetIconState(wordIdx, rep - 1, 'done');
           await sleep(450);
           if(token !== llRunToken) return;
         }
       } else {
         // quiz and review behave identically — the second is just a later
-        // repeat of the first, for the whole batch at once.
+        // repeat of the first, for the whole batch at once. Both light up
+        // the same speak icon (index LL_TEACH_REPEATS), since both are the
+        // same "your turn to answer" moment.
         llHideRow(wordIdx);
         llSetRowTurn(wordIdx, true);
+        llSetIconState(wordIdx, LL_TEACH_REPEATS, 'active');
         await sleep(300);
         if(token !== llRunToken) return;
         await speakArabicAsync(step.word);
@@ -2115,6 +2166,7 @@
         await sleep(LL_RECALL_GAP_MS);
         if(token !== llRunToken) return;
         llSetRowTurn(wordIdx, false);
+        llSetIconState(wordIdx, LL_TEACH_REPEATS, 'done');
         llRevealRow(wordIdx);
         await speakEnglishAsync(step.word);
         if(token !== llRunToken) return;
