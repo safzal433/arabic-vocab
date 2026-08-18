@@ -47,15 +47,28 @@ fi
 
 trim_to_second_repetition(){
   local file="$1"
-  local pairs count best split_at tmp
+  local total_dur target pairs count best split_at tmp
+  total_dur=$("$FFMPEG" -hide_banner -i "$file" 2>&1 \
+    | grep -oP '(?<=Duration: )[0-9:.]+' \
+    | awk -F: '{print ($1*3600)+($2*60)+$3}')
   pairs=$("$FFMPEG" -hide_banner -i "$file" -af silencedetect=noise=-30dB:d=0.15 -f null - 2>&1 \
     | grep -oP '(?<=silence_end: )[0-9.]+|(?<=silence_duration: )[0-9.]+' \
     | paste -d' ' - -)
   count=$(echo "$pairs" | grep -c . || true)
-  if [ "$count" -lt 2 ]; then
+  if [ "$count" -lt 2 ] || [ -z "$total_dur" ]; then
     return 0
   fi
-  best=$(echo "$pairs" | sort -k2,2 -g | tail -1)
+  # Pick the silence gap whose midpoint sits closest to the clip's temporal
+  # midpoint, not the single longest gap. Longest-gap breaks on phrases with
+  # their own internal pause — e.g. "you (Feminine)" pauses around the
+  # parenthetical, and that pause can be longer than the actual gap between
+  # the two repetitions, so the old heuristic trimmed to just "(Feminine)"
+  # and silently dropped "you". The true repeat boundary is always near the
+  # midpoint by construction, since both repetitions are the same text.
+  target=$(echo "$total_dur" | awk '{print $1/2}')
+  best=$(echo "$pairs" \
+    | awk -v t="$target" '{mid=$1-$2/2; d=mid-t; if(d<0) d=-d; print d, $0}' \
+    | sort -k1,1 -g | head -1 | cut -d' ' -f2-)
   split_at=$(echo "$best" | awk '{v=$1-0.03; if(v<0) v=0; printf "%.3f", v}')
   tmp="${file}.trimmed.mp3"
   if "$FFMPEG" -y -hide_banner -loglevel error -i "$file" -ss "$split_at" -c:a libmp3lame -q:a 4 "$tmp"; then

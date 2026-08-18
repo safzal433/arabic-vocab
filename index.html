@@ -431,6 +431,7 @@
     display:flex; align-items:center; justify-content:center;
   }
   .ll-play-btn:active{ transform: scale(0.92); }
+  .ll-row-hint{ color: var(--ink-soft); font-size:0.8rem; margin:0; }
   .ll-done{ text-align:center; padding:10px 0; width:100%; max-width:480px; }
   .ll-done p{ font-size:1.05rem; font-weight:700; color: var(--teal-deep); margin-bottom:14px; }
   .ll-done-actions{ display:flex; flex-direction:column; gap:10px; }
@@ -766,10 +767,11 @@
         </div>
         <div class="ll-word-count" id="llWordCount">Batch 1 · Word 1 of 5</div>
         <div class="ll-controls">
-          <button class="hw-nav-btn" id="llPrevBtn" aria-label="Previous word">◀ Previous</button>
+          <button class="hw-nav-btn" id="llBatchPrevBtn" aria-label="Previous batch">◀ Previous batch</button>
           <button class="ll-play-btn" id="llPlayPauseBtn" aria-label="Pause">⏸</button>
-          <button class="hw-nav-btn" id="llNextBtn" aria-label="Next word">Next ▶</button>
+          <button class="hw-nav-btn" id="llBatchNextBtn" aria-label="Next batch">Next batch ▶</button>
         </div>
+        <p class="ll-row-hint">Tap any word below to jump to it</p>
         <div class="ll-done hidden" id="llDone">
           <p id="llDoneMsg">🎉 Batch complete!</p>
           <div class="ll-done-actions">
@@ -850,6 +852,33 @@
     const lists = getSelectedLists();
     return WORD_BANK.filter(w => lists.includes(w.list));
   }
+
+  // Listen & Learn's word order (which words land in which batch, and in
+  // what order) — persisted per player so leaving the mode and coming back
+  // doesn't reshuffle batches out from under whatever the child already
+  // worked through. Rebuilt only when the active word list selection has
+  // actually changed, or it's a new day (so newly-due words can work their
+  // way to the front again via buildRoundQueue's due-first ordering).
+  function getOrBuildLearnOrder(){
+    const p = DB.players[currentPlayer];
+    const activeIds = activeWordBank().map(w => w.id);
+    const today = new Date().toDateString();
+
+    const stored = p.learnOrder;
+    const storedIds = new Set(stored ? stored.ids : []);
+    const sameSet = stored && stored.ids.length === activeIds.length
+      && activeIds.every(id => storedIds.has(id));
+    const sameDay = stored && stored.date === today;
+
+    if(!sameSet || !sameDay){
+      p.learnOrder = { ids: buildRoundQueue(activeIds.length).map(w => w.id), date: today };
+      saveData(DB);
+    }
+
+    const byId = new Map(WORD_BANK.map(w => [w.id, w]));
+    return p.learnOrder.ids.map(id => byId.get(id)).filter(Boolean);
+  }
+
   function getWordStat(playerName, wordId){
     const p = DB.players[playerName];
     if(!p.stats[wordId]) p.stats[wordId] = { seen: 0, correct: 0, box: 0, due: 0, lastSeen: 0 };
@@ -920,6 +949,7 @@
   let llStepIndex = 0;   // position within llSchedule
   let llPlaying = false;
   let llRunToken = 0;    // bumped to abort the in-flight auto-play loop
+  let llReturnAfterQuiz = false; // true while a batch-launched quiz is in progress
 
   const AVATAR_COLORS = ["#1F6F72", "#E3A73B", "#E4785A", "#4E9B72", "#5B7FBF", "#B06CA8"];
   function colorForName(name){
@@ -1437,6 +1467,10 @@
       names.length === WORD_LISTS.length ? 'All word lists' : names.join(', ');
   }
   function goHome(){
+    // Safety net: if a batch-launched quiz gets abandoned via its own back
+    // button instead of finishing, this stops that abandoned flag from
+    // hijacking the next unrelated quiz's completion screen.
+    llReturnAfterQuiz = false;
     document.getElementById('homeGreeting').textContent = `Hi, ${currentPlayer}! 👋`;
     updateHomeListsSummary();
     const due = countDueWords();
@@ -1541,9 +1575,17 @@
   }
 
   function finishRound(){
+    const total = roundQueue.length;
+    // A quiz launched from Listen & Learn's "Quiz these words" button
+    // returns to that batch's done panel (Next batch / Practice again)
+    // instead of the generic summary + home button.
+    if(llReturnAfterQuiz){
+      llReturnAfterQuiz = false;
+      llShowBatchDone(`✅ Quiz done — ${roundCorrect}/${total} correct, +${roundPoints} points!`);
+      return;
+    }
     document.getElementById('summaryTitle').textContent = `Nice work, ${currentPlayer}!`;
     document.getElementById('summaryPoints').textContent = `+${roundPoints} points`;
-    const total = roundQueue.length;
     document.getElementById('summaryAccuracy').textContent = `${roundCorrect} out of ${total} correct`;
     showScreen('summary');
   }
@@ -1979,21 +2021,25 @@
     if(badge) badge.classList.toggle('hidden', !on);
   }
   // Rebuilds every row's state for a given point in the schedule, so jumping
-  // backwards or forwards (Previous/Next, clicking a row) can't leave the
-  // list out of sync: a word's meaning shows once it's been taught, except
-  // during its own quiz/review moment, when it's masked with "Your turn!"
-  // instead.
+  // (clicking a row, or Previous/Next batch) can't leave the list out of
+  // sync. A word's meaning shows once its teach step has happened — except
+  // once the review lap starts, which re-masks every word for a fresh blind
+  // test instead of just re-displaying what phase 1 already revealed. Each
+  // word then re-reveals only once ITS OWN review step completes.
   function llSyncRowsTo(stepIdx){
-    const taught = new Set();
-    for(let i = 0; i < stepIdx; i++){
-      if(llSchedule[i].type === 'teach') taught.add(llSchedule[i].word.id);
-    }
     const step = llSchedule[stepIdx];
     const testingWordId = step && step.type !== 'teach' ? step.word.id : null;
+    const firstReviewIdx = llSchedule.findIndex(s => s.type === 'review');
+    const inReview = firstReviewIdx !== -1 && stepIdx >= firstReviewIdx;
+    const startFrom = inReview ? firstReviewIdx : 0;
+
+    const revealed = new Set();
+    for(let i = startFrom; i < stepIdx; i++) revealed.add(llSchedule[i].word.id);
+
     llRowEls.forEach((row, idx) => {
       const word = llBatch[idx];
       const isCurrentTest = word.id === testingWordId;
-      row.classList.toggle('revealed', taught.has(word.id) && !isCurrentTest);
+      row.classList.toggle('revealed', revealed.has(word.id) && !isCurrentTest);
       llSetRowTurn(idx, isCurrentTest);
     });
   }
@@ -2023,11 +2069,20 @@
     llPlaying = true;
     llUpdatePlayPauseButton();
     llSyncRowsTo(startStep);
+    const firstReviewIdx = llSchedule.findIndex(s => s.type === 'review');
 
     for(let s = startStep; s < llSchedule.length; s++){
       llStepIndex = s;
       const step = llSchedule[s];
       const wordIdx = llBatch.indexOf(step.word);
+
+      // Crossing into the review lap while playing forward: mask every row,
+      // not just the one about to be tested, so review is a fresh blind
+      // test instead of continuing to show phase 1's already-taught answers.
+      if(s === firstReviewIdx){
+        llBatch.forEach((_, i) => llHideRow(i));
+      }
+
       llShowStep();
 
       if(step.type === 'teach'){
@@ -2073,11 +2128,14 @@
     llShowBatchDone();
   }
 
-  function llShowBatchDone(){
+  function llShowBatchDone(message){
+    // Always land back on the Listen screen — this also gets called after a
+    // batch-launched quiz finishes, which happens on the MC screen.
+    showScreen('listen');
     const isLastBatch = llBatchStart + llBatchSize >= llWords.length;
-    document.getElementById('llDoneMsg').textContent = isLastBatch
+    document.getElementById('llDoneMsg').textContent = message || (isLastBatch
       ? "🎉 That's every word in your lists! Ready to try them?"
-      : "🎉 Batch done! Ready to try these?";
+      : "🎉 Batch done! Ready to try these?");
     document.getElementById('llNextBatchBtn').classList.toggle('hidden', isLastBatch);
     document.getElementById('llDone').classList.remove('hidden');
   }
@@ -2098,12 +2156,18 @@
     }
   }
 
+  function llUpdateBatchNavButtons(){
+    document.getElementById('llBatchPrevBtn').disabled = llBatchStart <= 0;
+    document.getElementById('llBatchNextBtn').disabled = llBatchStart + llBatchSize >= llWords.length;
+  }
+
   function llStartBatch(startIdx){
     llRunToken++;
     llStopAudio();
     llBatchStart = Math.max(0, startIdx);
     llBatch = llWords.slice(llBatchStart, llBatchStart + llBatchSize);
     llStepIndex = 0;
+    llUpdateBatchNavButtons();
     if(llBatch.length === 0){
       llSchedule = [];
       llPlaying = false;
@@ -2121,9 +2185,7 @@
 
   function startListenMode(){
     showScreen('listen');
-    // buildRoundQueue gives us the whole active bank already ordered by
-    // what's due, so the earliest batches are the words needing review.
-    llWords = buildRoundQueue(activeWordBank().length);
+    llWords = getOrBuildLearnOrder();
     document.getElementById('llBatchValue').textContent = llBatchSize;
     llStartBatch(0);
   }
@@ -2141,10 +2203,15 @@
       llRunFrom(llStepIndex);
     }
   });
-  document.getElementById('llPrevBtn').addEventListener('click', () => llJumpTo(llStepIndex - 1));
-  document.getElementById('llNextBtn').addEventListener('click', () => llJumpTo(llStepIndex + 1));
+  document.getElementById('llBatchPrevBtn').addEventListener('click', () => {
+    if(llBatchStart > 0) llStartBatch(llBatchStart - llBatchSize);
+  });
+  document.getElementById('llBatchNextBtn').addEventListener('click', () => {
+    if(llBatchStart + llBatchSize < llWords.length) llStartBatch(llBatchStart + llBatchSize);
+  });
 
   document.getElementById('llQuizBatchBtn').addEventListener('click', () => {
+    llReturnAfterQuiz = true;
     startRoundWithWords('mc', shuffle(llBatch.slice()));
   });
   document.getElementById('llReplayBatchBtn').addEventListener('click', () => llStartBatch(llBatchStart));
