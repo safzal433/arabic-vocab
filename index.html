@@ -410,16 +410,23 @@
 
   .ll-stage{ display:flex; flex-direction:column; align-items:center; gap:12px; padding: 6px 0 4px; }
   .ll-word-count{ color: var(--ink-soft); font-size:0.85rem; }
-  .ll-pass-banner{
-    width:100%; max-width:480px; text-align:center;
-    background: var(--teal-pale); border-radius: var(--radius-md);
-    padding: 12px 16px; transition: background .2s ease;
+  /* Phase navigation: click any tab to jump straight to that block of the
+     current batch (Listen/Quiz/Review are three back-to-back blocks, not
+     interleaved per word — see buildLearnSchedule). The active tab always
+     reflects whichever block the current step actually belongs to,
+     whether it got there by playing forward or by a manual jump. */
+  .ll-phase-tabs{
+    display:flex; gap:6px; width:100%; max-width:480px;
+    background: var(--teal-pale); border-radius: var(--radius-md); padding:6px;
   }
-  .ll-pass-label{ font-weight:800; font-size:1.05rem; color: var(--teal-deep); }
-  .ll-pass-hint{ font-size:0.85rem; color: var(--ink-soft); margin-top:2px; }
-  /* Shared by .ll-row.your-turn below — the gold "it's this word's turn"
-     pulse now lives on the row itself, right next to the word it's about,
-     instead of the banner at the top. */
+  .ll-phase-tab{
+    flex:1; background:none; border:none; border-radius: var(--radius-sm);
+    padding:10px 6px; font-weight:700; font-size:0.88rem; color: var(--teal-deep);
+    opacity:0.7;
+  }
+  .ll-phase-tab.active{ background: var(--panel); box-shadow: var(--shadow-sm); opacity:1; }
+  .ll-phase-tab:active{ transform: scale(0.96); }
+  /* Used by .ll-row.your-turn and .ll-icon.active below. */
   @keyframes promptPulse{
     0%,100%{ transform: scale(1); }
     50%{ transform: scale(1.03); }
@@ -496,6 +503,10 @@
     opacity:1; background: var(--gold); transform: scale(1.18);
     animation: promptPulse 0.8s ease-in-out infinite;
   }
+  /* The three listen icons stop being relevant once the review lap starts —
+     nothing is being taught again, only re-tested — so they're hidden for
+     the whole list, leaving just each row's speak icon. */
+  .ll-list.ll-review-phase .ll-icon:not(.ll-icon-speak){ display:none; }
 
   /* ---------- Round summary ---------- */
   .summary-wrap{ text-align:center; padding: 20px 10px; }
@@ -778,9 +789,10 @@
         </div>
       </div>
       <div class="ll-stage">
-        <div class="ll-pass-banner" id="llPassBanner">
-          <div class="ll-pass-label" id="llPassLabel">Listen</div>
-          <div class="ll-pass-hint" id="llPassHint">Listen carefully</div>
+        <div class="ll-phase-tabs">
+          <button class="ll-phase-tab" id="llPhaseListenBtn">👂 Listen</button>
+          <button class="ll-phase-tab" id="llPhaseQuizBtn">🎤 Quiz</button>
+          <button class="ll-phase-tab" id="llPhaseReviewBtn">🔁 Review</button>
         </div>
         <div class="ll-word-count" id="llWordCount">Batch 1 · Word 1 of 5</div>
         <div class="ll-controls">
@@ -1940,24 +1952,21 @@
   /* ============================================================
      LISTEN & LEARN MODE
      ============================================================
-     Teaches a small batch of words (llBatchSize) at a time, one word
-     fully at a time rather than interleaved, in three phases:
+     Teaches a small batch of words (llBatchSize) at a time in three
+     clean, back-to-back blocks — not interleaved per word:
 
-       1. TEACH  — Arabic + English, repeated LL_TEACH_REPEATS times.
-       2. QUIZ   — right after that word's repeats: the word's own row
-                   highlights gold with a "Your turn!" badge in place of
-                   its meaning, "<Arabic> means..." plays, then a silent
-                   gap to answer, then the meaning is revealed and read.
-       3. REVIEW — once every word in the batch has been taught and
-                   quizzed once, a second pass quizzes the whole batch
-                   again, same format as QUIZ.
+       1. LISTEN — every word's Arabic + English, repeated
+                    LL_TEACH_REPEATS times, one word after another.
+       2. QUIZ   — every word once: its row highlights gold with a
+                   "Your turn!" badge in place of its meaning,
+                   "<Arabic> means..." plays, a silent gap to answer,
+                   then the meaning is revealed and read.
+       3. REVIEW — every word once more, same format as QUIZ.
 
-     Earlier versions interleaved words to space out repeats (an
-     evidence-backed technique), but that made the currently-tested word
-     jump around the list unpredictably — confusing to follow for a
-     5-7 year old. This trades some of that spacing for a much simpler,
-     easier-to-follow rhythm: finish one word, get asked about it, move
-     to the next, then a single review lap at the end.
+     Blocking it this way (rather than teach+quiz per word before moving
+     on) means the three phases are simple, unambiguous jump targets —
+     the Listen/Quiz/Review buttons above the word list each just seek
+     to the start of their block.
      ============================================================ */
   const LL_TEACH_REPEATS = 3;    // times each word's Arabic+English is repeated while teaching
   const LL_RECALL_GAP_MS = 3000; // silence to answer before the meaning is revealed
@@ -1965,12 +1974,10 @@
   let llRowEls = [];     // one row per llBatch entry, rebuilt for each batch
   let llRowIconEls = []; // one [👂,👂,👂,🗣️] icon set per row, parallel to llRowEls
 
-  // Linear schedule: teach+quiz each word in order, then review every word
-  // once more. No interleaving — the active row only moves forward until
-  // the review lap starts it over from the top.
   function buildLearnSchedule(words){
     const events = [];
-    words.forEach(word => events.push({ type: 'teach', word }, { type: 'quiz', word }));
+    words.forEach(word => events.push({ type: 'teach', word }));
+    words.forEach(word => events.push({ type: 'quiz', word }));
     words.forEach(word => events.push({ type: 'review', word }));
     return events;
   }
@@ -2021,19 +2028,27 @@
     return at === -1 ? 0 : at;
   }
 
-  const LL_STEP_INFO = {
-    teach:  { label: '👂 New word', hint: 'Listen carefully' },
-    quiz:   { label: '🎤 Quiz',     hint: "Watch the highlighted word" },
-    review: { label: '🔁 Review',   hint: "Watch the highlighted word" },
+  // type -> which schedule block it belongs to, for the phase tabs and the
+  // Listen/Quiz/Review jump buttons. 'teach' events are the Listen block.
+  const LL_PHASE_BTN_ID = {
+    teach:  'llPhaseListenBtn',
+    quiz:   'llPhaseQuizBtn',
+    review: 'llPhaseReviewBtn',
   };
+
+  function llUpdatePhaseTabs(){
+    const step = llSchedule[llStepIndex];
+    const activeId = step ? LL_PHASE_BTN_ID[step.type] : null;
+    Object.values(LL_PHASE_BTN_ID).forEach(id => {
+      document.getElementById(id).classList.toggle('active', id === activeId);
+    });
+  }
 
   function llShowStep(){
     const step = llSchedule[llStepIndex];
-    const info = LL_STEP_INFO[step.type];
     const batchNo = Math.floor(llBatchStart / llBatchSize) + 1;
     const batchTotal = Math.max(1, Math.ceil(llWords.length / llBatchSize));
-    document.getElementById('llPassLabel').textContent = info.label;
-    document.getElementById('llPassHint').textContent = info.hint;
+    llUpdatePhaseTabs();
     document.getElementById('llWordCount').textContent =
       `Batch ${batchNo} of ${batchTotal} · Step ${llStepIndex + 1} of ${llSchedule.length}`;
     updateProgressBar('llProgress', llStepIndex, llSchedule.length);
@@ -2069,6 +2084,7 @@
     const firstReviewIdx = llSchedule.findIndex(s => s.type === 'review');
     const inReview = firstReviewIdx !== -1 && stepIdx >= firstReviewIdx;
     const startFrom = inReview ? firstReviewIdx : 0;
+    document.getElementById('llList').classList.toggle('ll-review-phase', inReview);
 
     const revealed = new Set();
     for(let i = startFrom; i < stepIdx; i++) revealed.add(llSchedule[i].word.id);
@@ -2122,11 +2138,13 @@
       const step = llSchedule[s];
       const wordIdx = llBatch.indexOf(step.word);
 
-      // Crossing into the review lap while playing forward: mask every row,
-      // not just the one about to be tested, so review is a fresh blind
-      // test instead of continuing to show phase 1's already-taught answers.
+      // Crossing into the review lap while playing forward: mask every row
+      // (not just the one about to be tested) and hide the now-irrelevant
+      // listen icons, so review reads as a fresh blind test instead of
+      // continuing to show phase 1's already-taught answers.
       if(s === firstReviewIdx){
         llBatch.forEach((_, i) => llHideRow(i));
+        document.getElementById('llList').classList.add('ll-review-phase');
       }
 
       llShowStep();
@@ -2135,7 +2153,6 @@
         llRevealRow(wordIdx);
         llSetRowTurn(wordIdx, false);
         for(let rep = 1; rep <= LL_TEACH_REPEATS; rep++){
-          document.getElementById('llPassHint').textContent = `Repeat ${rep} of ${LL_TEACH_REPEATS}`;
           llSetIconState(wordIdx, rep - 1, 'active');
           await sleep(250);
           if(token !== llRunToken) return;
@@ -2261,6 +2278,14 @@
   document.getElementById('llBatchNextBtn').addEventListener('click', () => {
     if(llBatchStart + llBatchSize < llWords.length) llStartBatch(llBatchStart + llBatchSize);
   });
+
+  function llJumpToPhase(type){
+    const idx = llSchedule.findIndex(s => s.type === type);
+    if(idx !== -1) llJumpTo(idx);
+  }
+  document.getElementById('llPhaseListenBtn').addEventListener('click', () => llJumpToPhase('teach'));
+  document.getElementById('llPhaseQuizBtn').addEventListener('click', () => llJumpToPhase('quiz'));
+  document.getElementById('llPhaseReviewBtn').addEventListener('click', () => llJumpToPhase('review'));
 
   document.getElementById('llQuizBatchBtn').addEventListener('click', () => {
     llReturnAfterQuiz = true;
