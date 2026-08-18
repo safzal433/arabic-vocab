@@ -791,8 +791,8 @@
       <div class="ll-stage">
         <div class="ll-phase-tabs">
           <button class="ll-phase-tab" id="llPhaseListenBtn">👂 Listen</button>
-          <button class="ll-phase-tab" id="llPhaseQuizBtn">🎤 Quiz</button>
           <button class="ll-phase-tab" id="llPhaseReviewBtn">🔁 Review</button>
+          <button class="ll-phase-tab" id="llPhaseQuizBtn">🎤 Quiz</button>
         </div>
         <div class="ll-word-count" id="llWordCount">Batch 1 · Word 1 of 5</div>
         <div class="ll-controls">
@@ -1952,21 +1952,27 @@
   /* ============================================================
      LISTEN & LEARN MODE
      ============================================================
-     Teaches a small batch of words (llBatchSize) at a time in three
-     clean, back-to-back blocks — not interleaved per word:
+     Teaches a small batch of words (llBatchSize) at a time in two
+     schedule phases, tracked by the Listen/Review tabs above the list
+     (the third tab, Quiz, isn't a schedule position at all — it just
+     launches the real multiple-choice quiz on this batch, same as the
+     "Quiz these words" button):
 
-       1. LISTEN — every word's Arabic + English, repeated
-                    LL_TEACH_REPEATS times, one word after another.
-       2. QUIZ   — every word once: its row highlights gold with a
+       1. LISTEN — per word, interleaved: Arabic + English repeated
+                   LL_TEACH_REPEATS times, then immediately that same
+                   word's "your turn" — row highlights gold with a
                    "Your turn!" badge in place of its meaning,
                    "<Arabic> means..." plays, a silent gap to answer,
-                   then the meaning is revealed and read.
-       3. REVIEW — every word once more, same format as QUIZ.
+                   then the meaning is revealed and read. Then the next
+                   word, same thing.
+       2. REVIEW — once every word has been through Listen, a second
+                   pass quizzes the whole batch again, same format as
+                   the "your turn" step above.
 
-     Blocking it this way (rather than teach+quiz per word before moving
-     on) means the three phases are simple, unambiguous jump targets —
-     the Listen/Quiz/Review buttons above the word list each just seek
-     to the start of their block.
+     Both jump targets are unambiguous even though Listen itself
+     interleaves teach+test per word: Listen always starts at the very
+     first event, Review always starts right after the last word's
+     Listen step ends.
      ============================================================ */
   const LL_TEACH_REPEATS = 3;    // times each word's Arabic+English is repeated while teaching
   const LL_RECALL_GAP_MS = 3000; // silence to answer before the meaning is revealed
@@ -1976,8 +1982,7 @@
 
   function buildLearnSchedule(words){
     const events = [];
-    words.forEach(word => events.push({ type: 'teach', word }));
-    words.forEach(word => events.push({ type: 'quiz', word }));
+    words.forEach(word => events.push({ type: 'teach', word }, { type: 'quiz', word }));
     words.forEach(word => events.push({ type: 'review', word }));
     return events;
   }
@@ -2028,18 +2033,20 @@
     return at === -1 ? 0 : at;
   }
 
-  // type -> which schedule block it belongs to, for the phase tabs and the
-  // Listen/Quiz/Review jump buttons. 'teach' events are the Listen block.
+  // type -> which tab it belongs to. 'teach' and 'quiz' are interleaved
+  // per word within the Listen phase, so both map to the Listen tab; the
+  // Quiz tab isn't schedule-driven at all (see llStartBatchQuiz), so it's
+  // deliberately absent here and handled separately below.
   const LL_PHASE_BTN_ID = {
     teach:  'llPhaseListenBtn',
-    quiz:   'llPhaseQuizBtn',
+    quiz:   'llPhaseListenBtn',
     review: 'llPhaseReviewBtn',
   };
 
   function llUpdatePhaseTabs(){
     const step = llSchedule[llStepIndex];
     const activeId = step ? LL_PHASE_BTN_ID[step.type] : null;
-    Object.values(LL_PHASE_BTN_ID).forEach(id => {
+    ['llPhaseListenBtn', 'llPhaseReviewBtn', 'llPhaseQuizBtn'].forEach(id => {
       document.getElementById(id).classList.toggle('active', id === activeId);
     });
   }
@@ -2283,14 +2290,17 @@
     const idx = llSchedule.findIndex(s => s.type === type);
     if(idx !== -1) llJumpTo(idx);
   }
-  document.getElementById('llPhaseListenBtn').addEventListener('click', () => llJumpToPhase('teach'));
-  document.getElementById('llPhaseQuizBtn').addEventListener('click', () => llJumpToPhase('quiz'));
-  document.getElementById('llPhaseReviewBtn').addEventListener('click', () => llJumpToPhase('review'));
-
-  document.getElementById('llQuizBatchBtn').addEventListener('click', () => {
+  // The real multiple-choice quiz on this batch — shared by the Quiz tab
+  // and the batch-done panel's "Quiz these words" button.
+  function llStartBatchQuiz(){
     llReturnAfterQuiz = true;
     startRoundWithWords('mc', shuffle(llBatch.slice()));
-  });
+  }
+  document.getElementById('llPhaseListenBtn').addEventListener('click', () => llJumpToPhase('teach'));
+  document.getElementById('llPhaseReviewBtn').addEventListener('click', () => llJumpToPhase('review'));
+  document.getElementById('llPhaseQuizBtn').addEventListener('click', llStartBatchQuiz);
+
+  document.getElementById('llQuizBatchBtn').addEventListener('click', llStartBatchQuiz);
   document.getElementById('llReplayBatchBtn').addEventListener('click', () => llStartBatch(llBatchStart));
   document.getElementById('llNextBatchBtn').addEventListener('click', () => llStartBatch(llBatchStart + llBatchSize));
 
