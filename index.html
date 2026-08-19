@@ -515,7 +515,35 @@
   .summary-points{ font-size: 2.2rem; font-weight:800; color: var(--gold-deep); margin: 4px 0 2px; }
   .summary-accuracy{ color: var(--ink-soft); margin-bottom: 26px; }
 
-  /* ---------- Weak words ---------- */
+  /* ---------- My Progress ---------- */
+  .progress-summary{
+    display:flex; gap:10px; margin: 4px 0 18px;
+  }
+  .progress-stat{
+    flex:1; background: var(--bg-deep); border-radius: var(--radius-md);
+    padding: 14px 16px; text-align:center;
+  }
+  .progress-stat-value{ font-size:1.5rem; font-weight:800; color: var(--teal-deep); }
+  .progress-stat-label{ font-size:0.78rem; color: var(--ink-soft); margin-top:2px; }
+  .progress-trend{
+    background: var(--bg-deep); border-radius: var(--radius-md);
+    padding: 14px 16px 10px; margin-bottom: 18px;
+  }
+  .progress-trend-title{ font-size:0.8rem; color: var(--ink-soft); margin-bottom:10px; }
+  .progress-trend-bars{
+    display:flex; align-items:flex-end; gap:4px; height:60px;
+  }
+  .progress-trend-bar{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .progress-trend-fill{
+    width:100%; border-radius:4px 4px 0 0; min-height:3px;
+    background: var(--ink-soft); opacity:0.25;
+  }
+  .progress-trend-fill.has-data{ opacity:1; }
+  .progress-trend-fill.low{ background: var(--coral); }
+  .progress-trend-fill.mid{ background: var(--gold); }
+  .progress-trend-fill.high{ background: var(--leaf); }
+  .progress-trend-empty{ text-align:center; color: var(--ink-soft); font-size:0.85rem; padding: 10px 0; }
+
   .weak-list{ display:flex; flex-direction:column; gap:12px; }
   .weak-row{
     display:flex; align-items:center; gap:14px;
@@ -525,8 +553,11 @@
   .weak-info{ flex:1; }
   .weak-english{ font-weight:700; }
   .weak-sub{ font-size:0.8rem; color: var(--ink-soft); }
-  .weak-meter{ width:70px; height:8px; background:#fff; border-radius:999px; overflow:hidden; }
-  .weak-meter-fill{ height:100%; background: var(--coral); }
+  .weak-meter{ width:70px; height:8px; background:#fff; border-radius:999px; overflow:hidden; flex-shrink:0; }
+  .weak-meter-fill{ height:100%; background: var(--ink-soft); opacity:0.3; }
+  .weak-meter-fill.low{ background: var(--coral); opacity:1; }
+  .weak-meter-fill.mid{ background: var(--gold); opacity:1; }
+  .weak-meter-fill.high{ background: var(--leaf); opacity:1; }
   .empty-state{ text-align:center; color: var(--ink-soft); padding: 30px 10px; }
 
   .float-points{
@@ -681,9 +712,9 @@
         <h3 class="mode-section-title">Review</h3>
         <div class="mode-grid">
           <button class="mode-card leaf" id="weakWordsBtn">
-            <div class="mode-icon">🎯</div>
-            <h3>See My Tricky Words</h3>
-            <p>See which words need a little more practice.</p>
+            <div class="mode-icon">📈</div>
+            <h3>See My Progress</h3>
+            <p>See how you're doing on every word, and your trend over time.</p>
           </button>
           <button class="mode-card leaf" id="practiceTrickyBtn">
             <div class="mode-icon">💪</div>
@@ -840,8 +871,10 @@
     <div class="panel">
       <div class="game-topbar">
         <button class="back-btn" id="weakBackBtn" aria-label="Back">←</button>
-        <h2 class="screen-title" style="margin:0; flex:1;">My Tricky Words</h2>
+        <h2 class="screen-title" style="margin:0; flex:1;">My Progress</h2>
       </div>
+      <div class="progress-summary" id="progressSummary"></div>
+      <div class="progress-trend" id="progressTrend"></div>
       <div class="weak-list" id="weakList"></div>
     </div>
   </section>
@@ -959,7 +992,20 @@
     stat.seen += 1;
     if(wasCorrect) stat.correct += 1;
     scheduleWord(stat, wasCorrect);
+    recordDailyStat(playerName, wasCorrect);
     saveData(DB);
+  }
+
+  // One lightweight rollup per calendar day per player (not per-attempt),
+  // just enough to plot an accuracy trend over time on the My Progress
+  // screen without tracking a timestamp on every single answer.
+  function recordDailyStat(playerName, wasCorrect){
+    const p = DB.players[playerName];
+    if(!p.dailyStats) p.dailyStats = {};
+    const key = new Date().toDateString();
+    if(!p.dailyStats[key]) p.dailyStats[key] = { seen: 0, correct: 0 };
+    p.dailyStats[key].seen += 1;
+    if(wasCorrect) p.dailyStats[key].correct += 1;
   }
   function addPoints(playerName, pts){
     DB.players[playerName].points += pts;
@@ -1521,7 +1567,7 @@
   document.querySelectorAll('.mode-card[data-mode]').forEach(btn => {
     btn.addEventListener('click', () => startRound(btn.dataset.mode));
   });
-  document.getElementById('weakWordsBtn').addEventListener('click', renderWeakWords);
+  document.getElementById('weakWordsBtn').addEventListener('click', renderProgress);
   document.getElementById('practiceTrickyBtn').addEventListener('click', startTrickyPractice);
   document.getElementById('weakBackBtn').addEventListener('click', goHome);
   document.getElementById('flashBackBtn').addEventListener('click', goHome);
@@ -2383,39 +2429,125 @@
     startRoundWithWords('mixed', queue);
   }
 
-  function renderWeakWords(){
+  // <50% accuracy reads as still-shaky, 50-80% as getting there, >80% as
+  // solid — used to color both the trend bars and each word's meter so the
+  // same three colors mean the same thing everywhere on this screen.
+  function accuracyTier(pct){
+    if(pct < 50) return 'low';
+    if(pct < 80) return 'mid';
+    return 'high';
+  }
+
+  function renderProgressSummary(entries){
+    const container = document.getElementById('progressSummary');
+    const practiced = entries.filter(e => e.seen > 0);
+    if(practiced.length === 0){
+      container.innerHTML = "";
+      return;
+    }
+    const totalSeen = practiced.reduce((sum, e) => sum + e.seen, 0);
+    const totalCorrect = practiced.reduce((sum, e) => sum + e.correct, 0);
+    const overallPct = Math.round((totalCorrect / totalSeen) * 100);
+    container.innerHTML = `
+      <div class="progress-stat">
+        <div class="progress-stat-value">${overallPct}%</div>
+        <div class="progress-stat-label">overall accuracy (${totalCorrect}/${totalSeen})</div>
+      </div>
+      <div class="progress-stat">
+        <div class="progress-stat-value">${practiced.length}/${entries.length}</div>
+        <div class="progress-stat-label">words practiced</div>
+      </div>
+    `;
+  }
+
+  // A trend without tracking a timestamp per attempt: recordDailyStat()
+  // rolls every answer into one {seen, correct} bucket per calendar day,
+  // so this just reads the last 14 days of those buckets and plots
+  // accuracy per day. Days with no attempts show as a faint sliver rather
+  // than being skipped, so gaps in practice are visible too.
+  function renderProgressTrend(){
+    const container = document.getElementById('progressTrend');
+    const daily = DB.players[currentPlayer].dailyStats || {};
+    const today = new Date();
+    const days = [];
+    for(let i = 13; i >= 0; i--){
+      const d = new Date(today);
+      d.setDate(d.getDate() - i);
+      const stat = daily[d.toDateString()];
+      days.push(stat && stat.seen > 0 ? stat.correct / stat.seen : null);
+    }
+
+    if(days.every(acc => acc === null)){
+      container.innerHTML = `
+        <div class="progress-trend-title">Accuracy over the last 2 weeks</div>
+        <div class="progress-trend-empty">Play a few days in a row and your trend will show up here! 📈</div>
+      `;
+      return;
+    }
+
+    const bars = days.map(acc => {
+      if(acc === null) return `<div class="progress-trend-bar"><div class="progress-trend-fill" style="height:100%"></div></div>`;
+      const pct = Math.max(6, Math.round(acc * 100));
+      return `<div class="progress-trend-bar"><div class="progress-trend-fill has-data ${accuracyTier(pct)}" style="height:${pct}%"></div></div>`;
+    }).join('');
+    container.innerHTML = `
+      <div class="progress-trend-title">Accuracy over the last 2 weeks</div>
+      <div class="progress-trend-bars">${bars}</div>
+    `;
+  }
+
+  function renderProgress(){
     const listEl = document.getElementById('weakList');
     listEl.innerHTML = "";
     const stats = DB.players[currentPlayer].stats;
-    const activeIds = new Set(activeWordBank().map(w => w.id));
-    const entries = Object.keys(stats)
-      .filter(id => activeIds.has(id))
-      .map(id => ({ id, ...stats[id] }))
-      .filter(s => s.seen >= TRICKY_MIN_SEEN)
-      .map(s => ({ ...s, accuracy: s.correct / s.seen }))
-      .filter(s => s.accuracy <= TRICKY_MAX_ACCURACY)
-      .sort((a,b) => a.accuracy - b.accuracy);
+    const entries = activeWordBank().map(word => {
+      const s = stats[word.id];
+      const seen = s ? s.seen : 0;
+      const correct = s ? s.correct : 0;
+      return { word, seen, correct, accuracy: seen > 0 ? correct / seen : null };
+    });
+
+    renderProgressSummary(entries);
+    renderProgressTrend();
 
     if(entries.length === 0){
-      listEl.innerHTML = `<div class="empty-state">Play a few rounds first, and your trickiest words will show up here! 🌱</div>`;
+      listEl.innerHTML = `<div class="empty-state">Pick some word lists first, then your progress will show up here! 🌱</div>`;
       showScreen('weak');
       return;
     }
 
-    entries.forEach(entry => {
-      const word = WORD_BANK.find(w => w.id === entry.id);
-      if(!word) return;
-      const pct = Math.round(entry.accuracy * 100);
+    // Weakest-first, so words needing the most work stay easy to spot;
+    // never-attempted words go last since they're not "struggling", just
+    // not started yet.
+    const sorted = entries.slice().sort((a, b) => {
+      if(a.accuracy === null && b.accuracy === null) return a.word.english.localeCompare(b.word.english);
+      if(a.accuracy === null) return 1;
+      if(b.accuracy === null) return -1;
+      return a.accuracy - b.accuracy;
+    });
+
+    sorted.forEach(entry => {
       const row = document.createElement('div');
       row.className = 'weak-row';
-      row.innerHTML = `
-        <div class="weak-arabic arabic">${word.arabic}</div>
-        <div class="weak-info">
-          <div class="weak-english">${escapeHtml(word.english)}</div>
-          <div class="weak-sub">${entry.correct}/${entry.seen} correct</div>
-        </div>
-        <div class="weak-meter"><div class="weak-meter-fill" style="width:${pct}%"></div></div>
-      `;
+      if(entry.accuracy === null){
+        row.innerHTML = `
+          <div class="weak-arabic arabic">${entry.word.arabic}</div>
+          <div class="weak-info">
+            <div class="weak-english">${escapeHtml(entry.word.english)}</div>
+            <div class="weak-sub">Not started yet</div>
+          </div>
+        `;
+      } else {
+        const pct = Math.round(entry.accuracy * 100);
+        row.innerHTML = `
+          <div class="weak-arabic arabic">${entry.word.arabic}</div>
+          <div class="weak-info">
+            <div class="weak-english">${escapeHtml(entry.word.english)}</div>
+            <div class="weak-sub">${entry.correct}/${entry.seen} correct</div>
+          </div>
+          <div class="weak-meter"><div class="weak-meter-fill ${accuracyTier(pct)}" style="width:${pct}%"></div></div>
+        `;
+      }
       listEl.appendChild(row);
     });
     showScreen('weak');
