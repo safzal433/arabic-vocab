@@ -47,13 +47,14 @@
    ============================================================ */
 
 const WORD_LISTS = [
-  { id: "starter", name: "Names & Classroom" },
-  { id: "home-family", name: "Family & Character" },
+  { id: "starter", name: "List 1" },
+  { id: "home-family", name: "List 2" },
+  { id: "home-family-2", name: "List 3" },
 ];
 
 const WORD_BANK = [
   // ============================================================
-  // LIST: Names & Classroom (starter)
+  // LIST 1 (starter)
   // ============================================================
 
   // Phrases / greetings
@@ -83,7 +84,7 @@ const WORD_BANK = [
   { id: "w020", arabic: "اَلصَّفِّ الثَّالِث", transliteration: "as-saff ath-thaalith", english: "3rd grade", category: "school", list: "starter" },
 
   // ============================================================
-  // LIST: Family & Character (home-family)
+  // LIST 2 (home-family)
   // ============================================================
 
   // Phrases
@@ -110,21 +111,27 @@ const WORD_BANK = [
   // is "my grandfather"; جَدَّتِي (jaddati), with the added تِي, is "my
   // grandmother". Corrected here — flag if that wasn't the intent.
   { id: "w031", arabic: "أُمِّي", transliteration: "ummi", english: "my mother", category: "family", list: "home-family" },
-  { id: "w032", arabic: "أَبِي", transliteration: "abi", english: "my father", category: "family", list: "home-family" },
-  { id: "w033", arabic: "جَدِّي", transliteration: "jaddi", english: "my grandfather", category: "family", list: "home-family" },
-  { id: "w034", arabic: "جَدَّتِي", transliteration: "jaddati", english: "my grandmother", category: "family", list: "home-family" },
-  { id: "w035", arabic: "أَخِي", transliteration: "akhi", english: "my brother", category: "family", list: "home-family" },
-  { id: "w036", arabic: "أُخْتِي", transliteration: "ukhti", english: "my sister", category: "family", list: "home-family" },
+
+  // ============================================================
+  // LIST 3 (home-family-2)
+  // ============================================================
+
+  // Family (continued)
+  { id: "w032", arabic: "أَبِي", transliteration: "abi", english: "my father", category: "family", list: "home-family-2" },
+  { id: "w033", arabic: "جَدِّي", transliteration: "jaddi", english: "my grandfather", category: "family", list: "home-family-2" },
+  { id: "w034", arabic: "جَدَّتِي", transliteration: "jaddati", english: "my grandmother", category: "family", list: "home-family-2" },
+  { id: "w035", arabic: "أَخِي", transliteration: "akhi", english: "my brother", category: "family", list: "home-family-2" },
+  { id: "w036", arabic: "أُخْتِي", transliteration: "ukhti", english: "my sister", category: "family", list: "home-family-2" },
 
   // Character traits
-  { id: "w041", arabic: "صَادِق", transliteration: "sadiq", english: "honest", category: "character", list: "home-family" },
-  { id: "w042", arabic: "كَاذِب", transliteration: "kadhib", english: "liar", category: "character", list: "home-family" },
-  { id: "w043", arabic: "نَشِيط", transliteration: "nashiit", english: "active", category: "character", list: "home-family" },
-  { id: "w044", arabic: "كَسُول", transliteration: "kasuul", english: "lazy", category: "character", list: "home-family" },
-  { id: "w045", arabic: "لَطِيف", transliteration: "latiif", english: "kind", category: "character", list: "home-family" },
-  { id: "w046", arabic: "لَئِيم", transliteration: "la'iim", english: "mean", category: "character", list: "home-family" },
-  { id: "w047", arabic: "مُرَتَّب", transliteration: "murattab", english: "neat", category: "character", list: "home-family" },
-  { id: "w048", arabic: "فَوْضَوِي", transliteration: "fawdawi", english: "messy", category: "character", list: "home-family" },
-  { id: "w049", arabic: "أَمِين", transliteration: "amiin", english: "trustworthy", category: "character", list: "home-family" },
-  { id: "w050", arabic: "خَائِن", transliteration: "kha'in", english: "traitor", category: "character", list: "home-family" },
+  { id: "w041", arabic: "صَادِق", transliteration: "sadiq", english: "honest", category: "character", list: "home-family-2" },
+  { id: "w042", arabic: "كَاذِب", transliteration: "kadhib", english: "liar", category: "character", list: "home-family-2" },
+  { id: "w043", arabic: "نَشِيط", transliteration: "nashiit", english: "active", category: "character", list: "home-family-2" },
+  { id: "w044", arabic: "كَسُول", transliteration: "kasuul", english: "lazy", category: "character", list: "home-family-2" },
+  { id: "w045", arabic: "لَطِيف", transliteration: "latiif", english: "kind", category: "character", list: "home-family-2" },
+  { id: "w046", arabic: "لَئِيم", transliteration: "la'iim", english: "mean", category: "character", list: "home-family-2" },
+  { id: "w047", arabic: "مُرَتَّب", transliteration: "murattab", english: "neat", category: "character", list: "home-family-2" },
+  { id: "w048", arabic: "فَوْضَوِي", transliteration: "fawdawi", english: "messy", category: "character", list: "home-family-2" },
+  { id: "w049", arabic: "أَمِين", transliteration: "amiin", english: "trustworthy", category: "character", list: "home-family-2" },
+  { id: "w050", arabic: "خَائِن", transliteration: "kha'in", english: "traitor", category: "character", list: "home-family-2" },
 ];

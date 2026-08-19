@@ -95,9 +95,10 @@ but it keeps working. A couple of notes:
 
 ### Word lists
 
-Words are grouped into **lists** — right now, "Names & Classroom" (the
-original 20 words) and "Family & Character" (30 more: family members,
-personality traits, and a few more classroom supplies). Every player picks
+Words are grouped into **lists** — right now, List 1 (the original 20
+words: names, phrases, classroom objects), List 2 (15 words: everyday
+phrases, classroom supplies, and "my mother"), and List 3 (15 words: the
+rest of the family members, plus personality traits). Every player picks
 which list(s) they want to practice — right after choosing their name, and
 any time afterward from the **📚 Word lists** button on the home screen.
 Every mode (flashcards, quizzes, Handwriting, Listen & Learn, Tricky Words)
