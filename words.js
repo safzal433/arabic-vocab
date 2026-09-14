@@ -13,7 +13,7 @@
    --------------------------------------
    Copy a line, paste it before that list's closing "]", and fill in:
 
-     { id: "w051", arabic: "شَجَرَة", transliteration: "shajara", english: "tree", category: "nature", list: "starter" },
+     { id: "w065", arabic: "شَجَرَة", transliteration: "shajara", english: "tree", category: "nature", list: "starter" },
 
    HOW TO ADD A WHOLE NEW LIST
    -----------------------------
@@ -23,7 +23,7 @@
    FIELD GUIDE
    -----------
    id             Must be UNIQUE across every word, in every list. Keep
-                   counting up (the highest so far is w050). Never reuse
+                   counting up (the highest so far is w064). Never reuse
                    an id — a player's stats are tracked by id, so reusing
                    one mixes up their progress.
    arabic          The Arabic word, with harakat (short vowel marks)
@@ -50,6 +50,7 @@ const WORD_LISTS = [
   { id: "starter", name: "List 1" },
   { id: "home-family", name: "List 2" },
   { id: "home-family-2", name: "List 3" },
+  { id: "islam-character", name: "List 4" },
 ];
 
 const WORD_BANK = [
@@ -134,4 +135,26 @@ const WORD_BANK = [
   { id: "w048", arabic: "فَوْضَوِي", transliteration: "fawdawi", english: "messy", category: "character", list: "home-family-2" },
   { id: "w049", arabic: "أَمِين", transliteration: "amiin", english: "trustworthy", category: "character", list: "home-family-2" },
   { id: "w050", arabic: "خَائِن", transliteration: "kha'in", english: "traitor", category: "character", list: "home-family-2" },
+
+  // ============================================================
+  // LIST 4 (islam-character)
+  // ============================================================
+
+  // More character traits
+  { id: "w051", arabic: "كريم", transliteration: "kareem", english: "generous", category: "character", list: "islam-character" },
+  { id: "w052", arabic: "بَخيل", transliteration: "bakheel", english: "cheap", category: "character", list: "islam-character" },
+  { id: "w062", arabic: "شَجَاعَة", transliteration: "shajaa'ah", english: "bravery", category: "character", list: "islam-character" },
+  { id: "w063", arabic: "شُجاع", transliteration: "shujaa'", english: "brave", category: "character", list: "islam-character" },
+  { id: "w064", arabic: "صِدْق", transliteration: "sidq", english: "honesty", category: "character", list: "islam-character" },
+
+  // Pillars of Islam
+  { id: "w053", arabic: "أَرْكان", transliteration: "arkaan", english: "pillars", category: "islam", list: "islam-character" },
+  { id: "w054", arabic: "الإسلام", transliteration: "al-islam", english: "Islam", category: "islam", list: "islam-character" },
+  { id: "w055", arabic: "الشَّهادتان", transliteration: "ash-shahadatan", english: "The 2 shahadas", category: "islam", list: "islam-character" },
+  { id: "w056", arabic: "الصَّلاة", transliteration: "as-salah", english: "prayer", category: "islam", list: "islam-character" },
+  { id: "w057", arabic: "أُصلِّي", transliteration: "usalli", english: "I pray", category: "islam", list: "islam-character" },
+  { id: "w058", arabic: "الزَّكاة", transliteration: "az-zakah", english: "Zakah", category: "islam", list: "islam-character" },
+  { id: "w059", arabic: "الصَّوْم", transliteration: "as-sawm", english: "fasting", category: "islam", list: "islam-character" },
+  { id: "w060", arabic: "أَصوم", transliteration: "asoomu", english: "I fast", category: "islam", list: "islam-character" },
+  { id: "w061", arabic: "الْحَج", transliteration: "al-hajj", english: "pilgrimage", category: "islam", list: "islam-character" },
 ];
