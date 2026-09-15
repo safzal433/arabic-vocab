@@ -7,7 +7,7 @@ required once a player's name is saved.
 ## How to run it
 
 1. Copy the whole `arabic-vocab-game` folder to your Surface (keep
-   `index.html` and `words.js` together, in the same folder).
+   `index.html`, `words.js`, and `letters.js` together, in the same folder).
 2. Double-click `index.html`. It opens in your default browser
    (Edge works great on a Surface).
 3. That's it — no install, no server needed.
@@ -24,6 +24,11 @@ the `audio/` folder — two per word, named by its `id`:
 
 - `audio/w001.mp3` — the Arabic word
 - `audio/w001_en.mp3` — its English meaning
+
+Letters (from `letters.js`) work the same way, just one file each (there's
+no English translation to speak for a letter) — `audio/l01.mp3` is the
+first letter's name, and so on. Word ids (`wNNN`) and letter ids (`lNN`)
+never collide, so both live in the same `audio/` folder.
 
 Both are the Google Translate voice, fetched once ahead of time, so
 playback is instant and the app works **fully offline**. Keeping the
@@ -56,8 +61,12 @@ but it keeps working. A couple of notes:
 - **Player select** — each kid types their name once; after that, they just
   tap their name/avatar to jump back in. Points and progress are saved per
   player, right in the browser.
-- The home screen is organized into four sections: **Learn**, **Practice**,
-  **Quiz**, and **Review**.
+- After picking a player, choose which game to play: **Arabic Vocab**
+  (below) or **Arabic Alphabet** (see its own section further down). Switch
+  between them anytime from a "🎮 Switch" button on either game's home
+  screen — no need to re-pick your name.
+- The vocab game's home screen is organized into four sections: **Learn**,
+  **Practice**, **Quiz**, and **Review**.
 
 ### Learn
 
@@ -85,9 +94,10 @@ but it keeps working. A couple of notes:
 
 ### Review
 
-- **See My Tricky Words** — pulls together whichever words a player has
-  gotten wrong most often (after they've seen a word at least twice), so
-  you can see at a glance what needs more practice.
+- **See My Progress** — every active word, weakest-scoring first, with a
+  color-coded accuracy meter and a 14-day accuracy trend chart. Never-
+  attempted words show up last, labeled "Not started yet" instead of a
+  score.
 - **Practice My Tricky Words** — a flashcard round using only the words a
   player is currently scoring 70% or under on (after at least two
   attempts). Nothing to practice yet, and it says so instead of starting
@@ -105,6 +115,39 @@ name, and any time afterward from the **📚 Word lists** button on the
 home screen.
 Every mode (flashcards, quizzes, Handwriting, Listen & Learn, Tricky Words)
 only draws from whichever list(s) are currently selected.
+
+## Arabic Alphabet game
+
+A second, separate game for learning the 28 letters of the Arabic
+alphabet — pick it instead of Arabic Vocab right after choosing a player.
+It has its own four modes:
+
+- **Pick the Letter** — the whole alphabet is shown on screen, in order,
+  greyed out. The narrator says a letter; tap it. Get it right and it
+  fills in with a sparkly sound; get it wrong and it fills in a different
+  color with a "Try again!" prompt so you can keep guessing. Every attempt
+  feeds Tricky Letters below.
+- **Flashcards** — a big letter card; tap it to hear it pronounced (as
+  many times as you like), then say whether you knew it with the same
+  "Still learning" / "I knew it!" buttons as the vocab flashcards.
+- **Tracing** — a big, faint letter is shown; color over it with a finger
+  or mouse. Just practice, no grading and no points, same idea as vocab's
+  Handwriting mode.
+- **Write!** — the narrator says a letter and the player writes it from
+  memory in a blank box, with a button to save that attempt and move to
+  the next letter. Nothing is graded in the moment — see Parent Review.
+
+### Review (Alphabet game)
+
+- **Tricky Letters** — a simple list of letters currently scoring 70% or
+  under (after at least two attempts), same idea as the vocab game's
+  tricky-words list.
+- **Parent Review** — every saved Write! attempt, newest first, showing
+  the target letter next to what the player actually drew. Mark each one
+  ✓ Correct or ✗ Incorrect; correct ones award 10 points and both feed
+  Tricky Letters. Graded attempts are removed from the list immediately
+  (nothing to re-review), and at most the most recent 60 ungraded
+  attempts are kept per player so this can't grow without bound.
 
 ### How Listen & Learn works
 

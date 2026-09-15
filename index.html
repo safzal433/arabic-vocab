@@ -259,6 +259,28 @@
   .mode-card.listen .mode-icon{ background: linear-gradient(135deg, var(--teal), var(--leaf)); }
   .mode-card.coral2 .mode-icon{ background: linear-gradient(135deg, var(--gold), var(--coral)); }
 
+  /* ---------- Choose-game screen ---------- */
+  .game-choice-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 18px; margin-top: 18px; }
+  .game-choice-card{
+    background: var(--panel);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow);
+    padding: 30px 24px;
+    text-align:left;
+    display:flex; flex-direction:column; gap:12px;
+    border: 2px solid transparent;
+  }
+  .game-choice-card:active{ transform: scale(0.97); }
+  .game-choice-icon{
+    width:64px;height:64px;border-radius:18px;
+    display:flex;align-items:center;justify-content:center;
+    font-size:30px; color:#fff;
+  }
+  .game-choice-card.teal .game-choice-icon{ background: var(--teal); }
+  .game-choice-card.gold .game-choice-icon{ background: var(--gold-deep); }
+  .game-choice-card h3{ margin:0; font-size:1.25rem; color: var(--ink); }
+  .game-choice-card p{ margin:0; color: var(--ink-soft); font-size:0.92rem; line-height:1.4; }
+
   /* ---------- Top nav row inside game screens ---------- */
   .game-topbar{ display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
   .back-btn{
@@ -359,6 +381,36 @@
   .option-btn.incorrect{ background: var(--coral-pale); border-color: var(--coral); color:#7A2A16; }
   .option-btn[disabled]{ pointer-events:none; }
 
+  /* ---------- Pick the Letter ---------- */
+  .letter-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap:10px; }
+  .letter-tile{
+    aspect-ratio: 1 / 1; border: none; border-radius: var(--radius-sm);
+    background: var(--bg-deep); color: var(--ink-soft);
+    font-size: 1.7rem; display:flex; align-items:center; justify-content:center;
+    opacity: 0.5; box-shadow: var(--shadow-sm);
+    transition: opacity .2s ease, background .2s ease, color .2s ease, transform .1s ease, border-color .2s ease;
+    border: 2px solid transparent;
+  }
+  .letter-tile:active{ transform: scale(0.92); }
+  .letter-tile.tried{ opacity:1; background: var(--coral-pale); color:#7A2A16; }
+  .letter-tile.correct{ opacity:1; background: var(--leaf-pale); color:#22532F; border-color: var(--leaf); }
+  .letter-tile[disabled]{ pointer-events:none; }
+
+  /* ---------- Letter Flashcards ---------- */
+  .letter-card{
+    width: 100%; max-width: 300px; height: 260px;
+    border-radius: var(--radius-lg);
+    background-color: var(--teal);
+    background-image:
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.08) 0 2px, transparent 2px 22px),
+      repeating-linear-gradient(-45deg, rgba(255,255,255,0.08) 0 2px, transparent 2px 22px);
+    box-shadow: var(--shadow);
+    display:flex; align-items:center; justify-content:center;
+    margin-bottom: 18px; border: none;
+  }
+  .letter-card:active{ transform: scale(0.97); }
+  .letter-card-glyph{ font-size: 5.5rem; color:#fff; }
+
   /* ---------- Handwriting ---------- */
   .hw-stage{ display:flex; flex-direction:column; align-items:center; gap:16px; padding: 6px 0 4px; }
   .hw-meaning{
@@ -382,7 +434,7 @@
     border-radius: var(--radius-lg); box-shadow: var(--shadow);
     overflow:hidden;
   }
-  #hwCanvas{ display:block; width:100%; height:260px; touch-action:none; cursor: crosshair; }
+  #hwCanvas, #ltCanvas, #lwCanvas{ display:block; width:100%; height:260px; touch-action:none; cursor: crosshair; }
 
   .hw-controls{ display:flex; justify-content:center; }
   .hw-controls .btn{ padding: 10px 24px; font-size:0.9rem; }
@@ -560,6 +612,30 @@
   .weak-meter-fill.high{ background: var(--leaf); opacity:1; }
   .empty-state{ text-align:center; color: var(--ink-soft); padding: 30px 10px; }
 
+  /* ---------- Parent Review ---------- */
+  .review-list{ display:flex; flex-direction:column; gap:16px; }
+  .review-card{
+    background: var(--bg-deep); border-radius: var(--radius-md);
+    padding: 16px; display:flex; flex-direction:column; gap:12px;
+  }
+  .review-card-head{ display:flex; align-items:center; gap:14px; }
+  .review-target{
+    width:52px; height:52px; border-radius:14px; flex-shrink:0;
+    background: var(--teal); color:#fff; font-size:1.5rem;
+    display:flex; align-items:center; justify-content:center;
+  }
+  .review-target-name{ font-weight:700; }
+  .review-target-sub{ font-size:0.8rem; color: var(--ink-soft); }
+  .review-drawing{
+    background: #fff; border-radius: var(--radius-sm); border:1px solid var(--teal-pale);
+    display:flex; align-items:center; justify-content:center; padding: 6px;
+  }
+  .review-drawing img{ max-width:100%; max-height:180px; display:block; }
+  .review-actions{ display:flex; gap:12px; }
+  .review-actions .btn{ flex:1; }
+  .review-actions .btn-correct{ background: var(--leaf); color:#fff; }
+  .review-actions .btn-incorrect{ background: var(--coral); color:#fff; }
+
   .float-points{
     position: fixed; font-weight:800; color: var(--gold-deep); font-size:1.4rem;
     pointer-events:none; animation: floatUp 0.9s ease forwards; z-index: 50;
@@ -591,6 +667,11 @@
     .card-word.arabic{ font-size: 2.5rem; }
     .options-grid{ grid-template-columns: 1fr; }
     #hwCanvas{ height: 210px; }
+    #ltCanvas, #lwCanvas{ height: 210px; }
+    .letter-grid{ grid-template-columns: repeat(auto-fill, minmax(44px, 1fr)); gap:7px; }
+    .letter-tile{ font-size: 1.3rem; }
+    .letter-card{ height: 210px; }
+    .letter-card-glyph{ font-size: 4.2rem; }
   }
 
   @media (prefers-reduced-motion: reduce){
@@ -633,6 +714,26 @@
     </div>
   </section>
 
+  <!-- SCREEN: Choose Game -->
+  <section id="screen-game-choice" class="hidden">
+    <div class="panel">
+      <h2 class="screen-title">What do you want to play?</h2>
+      <p class="screen-sub">Pick a game. You can switch back anytime.</p>
+      <div class="game-choice-grid">
+        <button class="game-choice-card teal" id="chooseVocabBtn">
+          <div class="game-choice-icon">📖</div>
+          <h3>Arabic Vocab</h3>
+          <p>Learn and practice Arabic words and their meanings.</p>
+        </button>
+        <button class="game-choice-card gold" id="chooseAlphabetBtn">
+          <div class="game-choice-icon">🔤</div>
+          <h3>Arabic Alphabet</h3>
+          <p>Learn to recognize, say, and write the Arabic letters.</p>
+        </button>
+      </div>
+    </div>
+  </section>
+
   <!-- SCREEN: Word Lists -->
   <section id="screen-lists" class="hidden">
     <div class="panel">
@@ -652,6 +753,10 @@
       <button class="home-lists-btn" id="homeListsBtn">
         📚 <span id="homeListsSummary">Word lists</span>
         <span class="home-lists-edit">Change ›</span>
+      </button>
+      <button class="home-lists-btn" id="homeSwitchGameBtn">
+        🎮 <span>Arabic Vocab</span>
+        <span class="home-lists-edit">Switch ›</span>
       </button>
       <p class="home-due" id="homeDue"></p>
 
@@ -720,6 +825,67 @@
             <div class="mode-icon">💪</div>
             <h3>Practice My Tricky Words</h3>
             <p>Flashcards using only the words you're still scoring 70% or under on.</p>
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN: Alphabet Home -->
+  <section id="screen-alphabet-home" class="hidden">
+    <div class="panel">
+      <h2 class="screen-title" id="alphaHomeGreeting">Arabic Alphabet</h2>
+      <p class="screen-sub">Pick a game to play.</p>
+
+      <button class="home-lists-btn" id="alphaSwitchGameBtn">
+        🎮 <span>Arabic Alphabet</span>
+        <span class="home-lists-edit">Switch ›</span>
+      </button>
+
+      <div class="mode-section">
+        <h3 class="mode-section-title">Learn</h3>
+        <div class="mode-grid">
+          <button class="mode-card coral" id="pickLetterBtn">
+            <div class="mode-icon">👉</div>
+            <h3>Pick the Letter</h3>
+            <p>Hear a letter, then tap it on the alphabet grid.</p>
+          </button>
+          <button class="mode-card teal" id="letterFlashBtn">
+            <div class="mode-icon">🗣️</div>
+            <h3>Flashcards</h3>
+            <p>See a letter, tap to hear it, then say if you knew it.</p>
+          </button>
+        </div>
+      </div>
+
+      <div class="mode-section">
+        <h3 class="mode-section-title">Practice writing</h3>
+        <div class="mode-grid">
+          <button class="mode-card hand" id="letterTraceBtn">
+            <div class="mode-icon">🖍️</div>
+            <h3>Tracing</h3>
+            <p>Color in a big letter with your finger.</p>
+          </button>
+          <button class="mode-card mixed" id="letterWriteBtn">
+            <div class="mode-icon">✍️</div>
+            <h3>Write!</h3>
+            <p>Hear a letter and write it from memory in the box.</p>
+          </button>
+        </div>
+      </div>
+
+      <div class="mode-section">
+        <h3 class="mode-section-title">Review</h3>
+        <div class="mode-grid">
+          <button class="mode-card leaf" id="trickyLettersBtn">
+            <div class="mode-icon">🎯</div>
+            <h3>Tricky Letters</h3>
+            <p>See which letters need a little more practice.</p>
+          </button>
+          <button class="mode-card leaf" id="parentReviewBtn">
+            <div class="mode-icon">👪</div>
+            <h3>Parent Review</h3>
+            <p>Look over Write! attempts and mark them right or wrong.</p>
           </button>
         </div>
       </div>
@@ -879,9 +1045,137 @@
     </div>
   </section>
 
+  <!-- SCREEN: Pick the Letter -->
+  <section id="screen-pick-letter" class="hidden">
+    <div class="panel">
+      <h2 class="screen-title mode-title">Pick the Letter</h2>
+      <div class="game-topbar">
+        <button class="back-btn" id="plBackBtn" aria-label="Back">←</button>
+        <div class="progress-track"><div class="progress-fill" id="plProgress"></div></div>
+        <div class="round-points">⭐ <span id="plRoundPoints">0</span></div>
+      </div>
+      <div class="mc-prompt">
+        <button class="listen-btn" id="plListenBtn" aria-label="Play letter">🔊</button>
+        <div class="mc-caption">Listen, then tap the matching letter</div>
+      </div>
+      <div class="letter-grid" id="plGrid"></div>
+    </div>
+  </section>
+
+  <!-- SCREEN: Letter Flashcards -->
+  <section id="screen-letter-flash" class="hidden">
+    <div class="panel">
+      <h2 class="screen-title mode-title">Letter Flashcards</h2>
+      <div class="game-topbar">
+        <button class="back-btn" id="lfBackBtn" aria-label="Back">←</button>
+        <div class="progress-track"><div class="progress-fill" id="lfProgress"></div></div>
+        <div class="round-points">⭐ <span id="lfRoundPoints">0</span></div>
+      </div>
+      <div class="card-stage">
+        <button class="letter-card" id="lfCard" aria-label="Tap to hear the letter">
+          <div class="letter-card-glyph arabic" id="lfGlyph"></div>
+        </button>
+        <p class="tap-instruction">Tap the letter to hear it</p>
+        <div class="self-report">
+          <button class="btn btn-ghost btn-block" id="lfStillLearningBtn">😅 Still learning</button>
+          <button class="btn btn-primary btn-block" id="lfKnewItBtn">😄 I knew it!</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN: Letter Tracing -->
+  <section id="screen-letter-trace" class="hidden">
+    <div class="panel">
+      <h2 class="screen-title mode-title">Letter Tracing</h2>
+      <div class="game-topbar">
+        <button class="back-btn" id="ltBackBtn" aria-label="Back">←</button>
+        <div class="progress-track"><div class="progress-fill" id="ltProgress"></div></div>
+      </div>
+      <div class="hw-stage">
+        <div class="hw-meaning">
+          <div class="hw-meaning-text">
+            <div class="hw-english" id="ltName"></div>
+          </div>
+          <button class="hw-listen" id="ltSpeakerBtn" aria-label="Play pronunciation">🔊</button>
+        </div>
+        <div class="hw-canvas-wrap">
+          <canvas id="ltCanvas"></canvas>
+        </div>
+        <div class="hw-controls">
+          <button class="btn btn-ghost" id="ltClearBtn">↺ Clear</button>
+        </div>
+        <div class="hw-nav">
+          <button class="hw-nav-btn" id="ltPrevBtn" aria-label="Previous letter">◀ Previous</button>
+          <button class="hw-nav-btn" id="ltNextBtn" aria-label="Next letter">Next ▶</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN: Write! -->
+  <section id="screen-letter-write" class="hidden">
+    <div class="panel">
+      <h2 class="screen-title mode-title">Write!</h2>
+      <div class="game-topbar">
+        <button class="back-btn" id="lwBackBtn" aria-label="Back">←</button>
+        <div class="progress-track"><div class="progress-fill" id="lwProgress"></div></div>
+      </div>
+      <div class="hw-stage">
+        <div class="hw-meaning">
+          <div class="hw-meaning-text">
+            <div class="hw-english">Write the letter you hear</div>
+          </div>
+          <button class="hw-listen" id="lwSpeakerBtn" aria-label="Play letter">🔊</button>
+        </div>
+        <div class="hw-canvas-wrap">
+          <canvas id="lwCanvas"></canvas>
+        </div>
+        <div class="hw-controls">
+          <button class="btn btn-ghost" id="lwClearBtn">↺ Clear</button>
+        </div>
+        <button class="btn btn-primary btn-block" id="lwNextBtn" style="margin-top:14px;">Save &amp; Next ▶</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCREEN: Alphabet round done (shared by Pick the Letter / Flashcards) -->
+  <section id="screen-ab-done" class="hidden">
+    <div class="panel summary-wrap">
+      <div class="summary-star">🌟</div>
+      <h2 class="screen-title" id="abDoneTitle">Great job!</h2>
+      <div class="summary-points" id="abDonePoints">+0 points</div>
+      <div class="summary-accuracy" id="abDoneAccuracy"></div>
+      <button class="btn btn-primary" id="abDoneHomeBtn">Back to Alphabet Games</button>
+    </div>
+  </section>
+
+  <!-- SCREEN: Tricky Letters -->
+  <section id="screen-tricky-letters" class="hidden">
+    <div class="panel">
+      <div class="game-topbar">
+        <button class="back-btn" id="trickyLettersBackBtn" aria-label="Back">←</button>
+        <h2 class="screen-title" style="margin:0; flex:1;">Tricky Letters</h2>
+      </div>
+      <div class="weak-list" id="trickyLettersList"></div>
+    </div>
+  </section>
+
+  <!-- SCREEN: Parent Review -->
+  <section id="screen-parent-review" class="hidden">
+    <div class="panel">
+      <div class="game-topbar">
+        <button class="back-btn" id="parentReviewBackBtn" aria-label="Back">←</button>
+        <h2 class="screen-title" style="margin:0; flex:1;">Parent Review</h2>
+      </div>
+      <div class="review-list" id="parentReviewList"></div>
+    </div>
+  </section>
+
 </div>
 
 <script src="words.js"></script>
+<script src="letters.js"></script>
 <script>
 (function(){
   "use strict";
@@ -1392,6 +1686,15 @@
     lists: document.getElementById('screen-lists'),
     summary: document.getElementById('screen-summary'),
     weak: document.getElementById('screen-weak'),
+    gameChoice: document.getElementById('screen-game-choice'),
+    alphabetHome: document.getElementById('screen-alphabet-home'),
+    pickLetter: document.getElementById('screen-pick-letter'),
+    letterFlash: document.getElementById('screen-letter-flash'),
+    letterTrace: document.getElementById('screen-letter-trace'),
+    letterWrite: document.getElementById('screen-letter-write'),
+    abDone: document.getElementById('screen-ab-done'),
+    trickyLetters: document.getElementById('screen-tricky-letters'),
+    parentReview: document.getElementById('screen-parent-review'),
   };
   function showScreen(name){
     Object.values(screens).forEach(s => s.classList.add('hidden'));
@@ -1496,8 +1799,7 @@
     currentPlayer = name;
     ensurePlayer(name);
     updatePlayerPill();
-    renderListSelect();
-    showScreen('lists');
+    showScreen('gameChoice');
   }
   document.getElementById('switchPlayerBtn').addEventListener('click', () => {
     currentPlayer = null;
@@ -2552,6 +2854,542 @@
     });
     showScreen('weak');
   }
+
+  /* ============================================================
+     ARABIC ALPHABET GAME
+     ============================================================
+     A second, independent game selectable right after picking a player
+     (see screen-game-choice / selectPlayer above). Deliberately kept
+     separate from the vocab game's own state (roundQueue, currentMode,
+     startRoundWithWords, etc.) rather than folded into it -- letters
+     aren't words, and stretching that machinery to cover both would mean
+     threading letter-shaped special cases through every vocab code path.
+     It does reuse the genuinely generic pieces: recordAnswer/stats
+     (letter ids like "l01" never collide with word ids like "w001", so
+     they safely share one per-player stats bucket), addPoints,
+     playLocalAudio, shuffle, escapeHtml, showCelebration,
+     showFloatingPoints, updateProgressBar, accuracyTier.
+     ============================================================ */
+
+  function speakLetter(letter){
+    if(!letter || !letter.arabic) return;
+    if('speechSynthesis' in window) speechSynthesis.cancel();
+    playLocalAudio(letter.id)
+      .catch(() => playGoogleTts(letter.arabic))
+      .catch(() => speakWithBrowser(letter.arabic));
+  }
+
+  // Deliberately not recordAnswer(): that also rolls the answer into the
+  // per-day bucket the vocab "My Progress" trend chart reads, and letter
+  // practice shouldn't quietly skew a screen scoped to the Arabic Vocab
+  // game. This only updates the seen/correct counters Tricky Letters reads
+  // (getWordStat's box/due SRS fields end up on letters too, but nothing
+  // reads those for letters, so they're just harmlessly unused).
+  function recordLetterAnswer(playerName, letterId, wasCorrect){
+    const stat = getWordStat(playerName, letterId);
+    stat.seen += 1;
+    if(wasCorrect) stat.correct += 1;
+    saveData(DB);
+  }
+
+  // A short synthesized "sparkle" chime for a correct Pick the Letter
+  // answer -- an ascending four-note arpeggio via the Web Audio API, so
+  // no audio asset is needed and it still works fully offline.
+  let sparkleAudioCtx = null;
+  function playSparkleSound(){
+    try{
+      if(!sparkleAudioCtx) sparkleAudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const ctx = sparkleAudioCtx;
+      const now = ctx.currentTime;
+      const notes = [1046.5, 1318.5, 1568.0, 2093.0]; // C6, E6, G6, C7
+      notes.forEach((freq, i) => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.type = 'sine';
+        osc.frequency.value = freq;
+        const start = now + i * 0.07;
+        gain.gain.setValueAtTime(0, start);
+        gain.gain.linearRampToValueAtTime(0.22, start + 0.02);
+        gain.gain.exponentialRampToValueAtTime(0.001, start + 0.35);
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        osc.start(start);
+        osc.stop(start + 0.4);
+      });
+    }catch(e){ /* Web Audio unsupported/blocked -- skip the chime silently */ }
+  }
+
+  function showAlphabetHome(){
+    document.getElementById('alphaHomeGreeting').textContent = `${currentPlayer}'s Arabic Alphabet`;
+    showScreen('alphabetHome');
+  }
+  document.getElementById('chooseVocabBtn').addEventListener('click', () => {
+    renderListSelect();
+    showScreen('lists');
+  });
+  document.getElementById('chooseAlphabetBtn').addEventListener('click', showAlphabetHome);
+  document.getElementById('homeSwitchGameBtn').addEventListener('click', () => showScreen('gameChoice'));
+  document.getElementById('alphaSwitchGameBtn').addEventListener('click', () => showScreen('gameChoice'));
+
+  /* ---------------- Pick the Letter ----------------
+     The grid always shows the full alphabet in order (built once, then
+     reused every round); only the *asking* order is shuffled per round,
+     so the layout stays predictable while the quiz itself doesn't. */
+  let plOrder = [];        // this round's target sequence (all 28, shuffled)
+  let plTargetIdx = 0;
+  let plRoundPoints = 0;
+  let plRoundCorrect = 0;
+  let plAnswered = false;  // true once the current target's first attempt is recorded
+  let plTileEls = [];      // LETTER_BANK-order array of tile buttons, built once
+
+  function buildPickLetterGrid(){
+    const grid = document.getElementById('plGrid');
+    grid.innerHTML = "";
+    plTileEls = LETTER_BANK.map(letter => {
+      const btn = document.createElement('button');
+      btn.className = 'letter-tile arabic';
+      btn.textContent = letter.arabic;
+      btn.addEventListener('click', () => handlePickLetterAnswer(letter, btn));
+      grid.appendChild(btn);
+      return btn;
+    });
+  }
+
+  function startPickLetter(){
+    if(plTileEls.length === 0) buildPickLetterGrid();
+    plTileEls.forEach(btn => {
+      btn.classList.remove('tried', 'correct');
+      btn.disabled = false;
+    });
+    plOrder = shuffle(LETTER_BANK.slice());
+    plTargetIdx = 0;
+    plRoundPoints = 0;
+    plRoundCorrect = 0;
+    showScreen('pickLetter');
+    askPickLetterTarget();
+  }
+
+  function askPickLetterTarget(){
+    plAnswered = false;
+    updateProgressBar('plProgress', plTargetIdx, plOrder.length);
+    document.getElementById('plRoundPoints').textContent = plRoundPoints;
+    setTimeout(() => speakLetter(plOrder[plTargetIdx]), 300);
+  }
+
+  document.getElementById('plListenBtn').addEventListener('click', () => {
+    speakLetter(plOrder[plTargetIdx]);
+  });
+
+  function handlePickLetterAnswer(letter, btnEl){
+    const target = plOrder[plTargetIdx];
+    const isCorrect = letter.id === target.id;
+
+    if(!plAnswered){
+      plAnswered = true;
+      recordLetterAnswer(currentPlayer, target.id, isCorrect);
+    }
+
+    if(!isCorrect){
+      btnEl.classList.add('tried');
+      showCelebration('Try again! 🤔', btnEl, 'warn');
+      return;
+    }
+
+    btnEl.classList.add('correct');
+    btnEl.disabled = true;
+    playSparkleSound();
+
+    const pts = 10;
+    plRoundPoints += pts;
+    plRoundCorrect += 1;
+    addPoints(currentPlayer, pts);
+    document.getElementById('plRoundPoints').textContent = plRoundPoints;
+    showCelebration('Good job! ✨', btnEl);
+
+    setTimeout(() => {
+      plTargetIdx += 1;
+      if(plTargetIdx >= plOrder.length){
+        finishAlphabetRound('Pick the Letter', plRoundPoints, plRoundCorrect, plOrder.length);
+      } else {
+        askPickLetterTarget();
+      }
+    }, 900);
+  }
+
+  document.getElementById('pickLetterBtn').addEventListener('click', startPickLetter);
+  document.getElementById('plBackBtn').addEventListener('click', showAlphabetHome);
+
+  /* ---------------- Letter Flashcards ---------------- */
+  let lfQueue = [];
+  let lfIndex = 0;
+  let lfRoundPoints = 0;
+  let lfRoundCorrect = 0;
+
+  function startLetterFlash(){
+    lfQueue = shuffle(LETTER_BANK.slice());
+    lfIndex = 0;
+    lfRoundPoints = 0;
+    lfRoundCorrect = 0;
+    showScreen('letterFlash');
+    loadLetterFlashCard();
+  }
+
+  function loadLetterFlashCard(){
+    updateProgressBar('lfProgress', lfIndex, lfQueue.length);
+    document.getElementById('lfRoundPoints').textContent = lfRoundPoints;
+    const letter = lfQueue[lfIndex];
+    document.getElementById('lfGlyph').textContent = letter.arabic;
+    setTimeout(() => speakLetter(letter), 250);
+  }
+
+  document.getElementById('lfCard').addEventListener('click', () => {
+    speakLetter(lfQueue[lfIndex]);
+  });
+
+  function handleLetterSelfReport(knewIt, evt){
+    const letter = lfQueue[lfIndex];
+    recordLetterAnswer(currentPlayer, letter.id, knewIt);
+    if(knewIt){
+      const pts = 5;
+      lfRoundPoints += pts;
+      lfRoundCorrect += 1;
+      addPoints(currentPlayer, pts);
+      showFloatingPoints(evt, `+${pts}`);
+    }
+    lfIndex += 1;
+    if(lfIndex >= lfQueue.length){
+      finishAlphabetRound('Flashcards', lfRoundPoints, lfRoundCorrect, lfQueue.length);
+    } else {
+      loadLetterFlashCard();
+    }
+  }
+  document.getElementById('lfKnewItBtn').addEventListener('click', (e) => handleLetterSelfReport(true, e));
+  document.getElementById('lfStillLearningBtn').addEventListener('click', (e) => handleLetterSelfReport(false, e));
+  document.getElementById('lfBackBtn').addEventListener('click', showAlphabetHome);
+
+  /* ---------------- Shared alphabet round-done screen ----------------
+     Kept separate from the vocab game's #screen-summary (whose Back
+     button is hardwired to goHome()) rather than branching that shared
+     screen between two different "home" targets. */
+  function finishAlphabetRound(label, points, correct, total){
+    document.getElementById('abDoneTitle').textContent = `${label} done!`;
+    document.getElementById('abDonePoints').textContent = `+${points} points`;
+    document.getElementById('abDoneAccuracy').textContent = `${correct} out of ${total} correct`;
+    showScreen('abDone');
+  }
+  document.getElementById('abDoneHomeBtn').addEventListener('click', showAlphabetHome);
+
+  /* ---------------- Letter Tracing ----------------
+     Same "faint background glyph, free-draw on top, no grading" model as
+     vocab Handwriting (see hwDrawGuide above) -- just one big character
+     instead of a whole word, on its own canvas. */
+  const ltCanvas = document.getElementById('ltCanvas');
+  const ltCtx = ltCanvas.getContext('2d');
+  let ltDrawing = false;
+  let ltLastPoint = null;
+  let ltDrawToken = 0;
+  let ltIndex = 0;
+
+  function ltResizeCanvas(){
+    const rect = ltCanvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    ltCanvas.width = Math.max(1, Math.round(rect.width * dpr));
+    ltCanvas.height = Math.max(1, Math.round(rect.height * dpr));
+    ltCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    return rect;
+  }
+  function ltDrawGuide(letter){
+    const token = ++ltDrawToken;
+    const rect = ltResizeCanvas();
+    const w = rect.width, h = rect.height;
+    ltCtx.globalCompositeOperation = 'source-over';
+    ltCtx.clearRect(0, 0, w, h);
+    ltLastPoint = null;
+    document.fonts.load("40px 'Noto Naskh Arabic'").catch(() => {}).finally(() => {
+      if(token !== ltDrawToken) return;
+      const fontSize = Math.min(w * 0.55, h * 0.75);
+      ltCtx.font = `${fontSize}px 'Noto Naskh Arabic', serif`;
+      ltCtx.textAlign = 'center';
+      ltCtx.textBaseline = 'middle';
+      ltCtx.fillStyle = '#D8ECEA';
+      ltCtx.fillText(letter.arabic, w / 2, h / 2 + fontSize * 0.05);
+    });
+  }
+  function ltPointFromEvent(evt){
+    const rect = ltCanvas.getBoundingClientRect();
+    return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+  }
+  function ltStrokeTo(x, y){
+    ltCtx.lineCap = 'round';
+    ltCtx.lineJoin = 'round';
+    ltCtx.lineWidth = HW_BRUSH_RADIUS * 2;
+    ltCtx.strokeStyle = '#C98D22';
+    ltCtx.beginPath();
+    ltCtx.moveTo(ltLastPoint ? ltLastPoint.x : x, ltLastPoint ? ltLastPoint.y : y);
+    ltCtx.lineTo(x, y);
+    ltCtx.stroke();
+    ltLastPoint = { x, y };
+  }
+  function ltEndStroke(){ ltDrawing = false; ltLastPoint = null; }
+  ltCanvas.addEventListener('pointerdown', (e) => {
+    ltDrawing = true;
+    ltCanvas.setPointerCapture(e.pointerId);
+    const p = ltPointFromEvent(e);
+    ltStrokeTo(p.x, p.y);
+  });
+  ltCanvas.addEventListener('pointermove', (e) => {
+    if(!ltDrawing) return;
+    const p = ltPointFromEvent(e);
+    ltStrokeTo(p.x, p.y);
+  });
+  ltCanvas.addEventListener('pointerup', ltEndStroke);
+  ltCanvas.addEventListener('pointercancel', ltEndStroke);
+  ltCanvas.addEventListener('pointerleave', ltEndStroke);
+
+  function loadLetterTrace(){
+    ltDrawing = false;
+    const letter = LETTER_BANK[ltIndex];
+    updateProgressBar('ltProgress', ltIndex, LETTER_BANK.length);
+    document.getElementById('ltName').textContent = letter.name;
+    ltDrawGuide(letter);
+    setTimeout(() => speakLetter(letter), 250);
+  }
+  function startLetterTrace(){
+    ltIndex = 0;
+    showScreen('letterTrace');
+    loadLetterTrace();
+  }
+  document.getElementById('ltNextBtn').addEventListener('click', () => {
+    // No points/grading in Tracing, so there's no "round end" to reach --
+    // reaching the last letter just loops back to the first.
+    ltIndex = (ltIndex + 1) % LETTER_BANK.length;
+    loadLetterTrace();
+  });
+  document.getElementById('ltPrevBtn').addEventListener('click', () => {
+    ltIndex = ltIndex > 0 ? ltIndex - 1 : LETTER_BANK.length - 1;
+    loadLetterTrace();
+  });
+  document.getElementById('ltClearBtn').addEventListener('click', () => {
+    ltDrawGuide(LETTER_BANK[ltIndex]);
+  });
+  document.getElementById('ltSpeakerBtn').addEventListener('click', () => {
+    speakLetter(LETTER_BANK[ltIndex]);
+  });
+  document.getElementById('letterTraceBtn').addEventListener('click', startLetterTrace);
+  document.getElementById('ltBackBtn').addEventListener('click', showAlphabetHome);
+
+  /* ---------------- Write! ----------------
+     Narrator says a letter; the player writes it from memory on a blank
+     canvas (no guide glyph -- this is a recall test, not tracing). There
+     is no in-app grading: each attempt is saved as a small PNG snapshot
+     for a parent to grade later in Parent Review, and points are only
+     awarded once that grading happens. Capped at WRITE_SUBMISSION_LIMIT
+     per player (oldest dropped first) so localStorage can't grow
+     unbounded from a kid happily writing letters all week. */
+  const WRITE_SUBMISSION_LIMIT = 60;
+  const lwCanvas = document.getElementById('lwCanvas');
+  const lwCtx = lwCanvas.getContext('2d');
+  let lwDrawing = false;
+  let lwLastPoint = null;
+  let lwOrder = [];
+  let lwIndex = 0;
+  let lwHasStroke = false;
+
+  function lwResizeCanvas(){
+    const rect = lwCanvas.getBoundingClientRect();
+    const dpr = window.devicePixelRatio || 1;
+    lwCanvas.width = Math.max(1, Math.round(rect.width * dpr));
+    lwCanvas.height = Math.max(1, Math.round(rect.height * dpr));
+    lwCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    lwCtx.fillStyle = '#fff';
+    lwCtx.fillRect(0, 0, rect.width, rect.height);
+    return rect;
+  }
+  function lwClear(){
+    lwResizeCanvas();
+    lwLastPoint = null;
+    lwHasStroke = false;
+  }
+  function lwPointFromEvent(evt){
+    const rect = lwCanvas.getBoundingClientRect();
+    return { x: evt.clientX - rect.left, y: evt.clientY - rect.top };
+  }
+  function lwStrokeTo(x, y){
+    lwCtx.lineCap = 'round';
+    lwCtx.lineJoin = 'round';
+    lwCtx.lineWidth = HW_BRUSH_RADIUS * 2;
+    lwCtx.strokeStyle = '#1F3535';
+    lwCtx.beginPath();
+    lwCtx.moveTo(lwLastPoint ? lwLastPoint.x : x, lwLastPoint ? lwLastPoint.y : y);
+    lwCtx.lineTo(x, y);
+    lwCtx.stroke();
+    lwLastPoint = { x, y };
+    lwHasStroke = true;
+  }
+  function lwEndStroke(){ lwDrawing = false; lwLastPoint = null; }
+  lwCanvas.addEventListener('pointerdown', (e) => {
+    lwDrawing = true;
+    lwCanvas.setPointerCapture(e.pointerId);
+    const p = lwPointFromEvent(e);
+    lwStrokeTo(p.x, p.y);
+  });
+  lwCanvas.addEventListener('pointermove', (e) => {
+    if(!lwDrawing) return;
+    const p = lwPointFromEvent(e);
+    lwStrokeTo(p.x, p.y);
+  });
+  lwCanvas.addEventListener('pointerup', lwEndStroke);
+  lwCanvas.addEventListener('pointercancel', lwEndStroke);
+  lwCanvas.addEventListener('pointerleave', lwEndStroke);
+
+  function loadLetterWrite(){
+    updateProgressBar('lwProgress', lwIndex, lwOrder.length);
+    lwClear();
+    setTimeout(() => speakLetter(lwOrder[lwIndex]), 250);
+  }
+  function startLetterWrite(){
+    lwOrder = shuffle(LETTER_BANK.slice());
+    lwIndex = 0;
+    showScreen('letterWrite');
+    loadLetterWrite();
+  }
+  function saveWriteSubmission(letter){
+    if(!lwHasStroke) return; // nothing drawn -- don't save a blank canvas
+    // Downscaled, compressed snapshot -- plenty legible for a parent to
+    // grade, far lighter than the on-screen canvas's own resolution.
+    const thumb = document.createElement('canvas');
+    thumb.width = 240; thumb.height = 240;
+    const tctx = thumb.getContext('2d');
+    tctx.fillStyle = '#fff';
+    tctx.fillRect(0, 0, 240, 240);
+    tctx.drawImage(lwCanvas, 0, 0, 240, 240);
+    const image = thumb.toDataURL('image/png');
+
+    const p = DB.players[currentPlayer];
+    if(!p.writeSubmissions) p.writeSubmissions = [];
+    p.writeSubmissions.push({
+      id: 'ws' + Date.now() + Math.floor(Math.random() * 1000),
+      letterId: letter.id,
+      image,
+      createdAt: Date.now(),
+    });
+    while(p.writeSubmissions.length > WRITE_SUBMISSION_LIMIT){
+      p.writeSubmissions.shift();
+    }
+    saveData(DB);
+  }
+  document.getElementById('lwNextBtn').addEventListener('click', () => {
+    saveWriteSubmission(lwOrder[lwIndex]);
+    lwIndex += 1;
+    if(lwIndex >= lwOrder.length){
+      showAlphabetHome();
+    } else {
+      loadLetterWrite();
+    }
+  });
+  document.getElementById('lwClearBtn').addEventListener('click', lwClear);
+  document.getElementById('lwSpeakerBtn').addEventListener('click', () => {
+    speakLetter(lwOrder[lwIndex]);
+  });
+  document.getElementById('letterWriteBtn').addEventListener('click', startLetterWrite);
+  document.getElementById('lwBackBtn').addEventListener('click', showAlphabetHome);
+
+  /* ---------------- Parent Review ----------------
+     No PIN/gate on reaching this screen (a plain button on the alphabet
+     home screen) -- deliberately simple for now. */
+  function renderParentReview(){
+    const listEl = document.getElementById('parentReviewList');
+    listEl.innerHTML = "";
+    const p = DB.players[currentPlayer];
+    const submissions = (p.writeSubmissions || []).slice().reverse(); // newest first
+
+    if(submissions.length === 0){
+      listEl.innerHTML = `<div class="empty-state">No Write! attempts waiting for review yet. 🌱</div>`;
+      showScreen('parentReview');
+      return;
+    }
+
+    submissions.forEach(sub => {
+      const letter = LETTER_BANK.find(l => l.id === sub.letterId);
+      if(!letter) return;
+      const card = document.createElement('div');
+      card.className = 'review-card';
+      card.innerHTML = `
+        <div class="review-card-head">
+          <div class="review-target arabic">${letter.arabic}</div>
+          <div>
+            <div class="review-target-name">${escapeHtml(letter.name)}</div>
+            <div class="review-target-sub">${new Date(sub.createdAt).toLocaleDateString()}</div>
+          </div>
+        </div>
+        <div class="review-drawing"><img src="${sub.image}" alt="Player's attempt at writing ${escapeHtml(letter.name)}"></div>
+        <div class="review-actions">
+          <button class="btn btn-correct" data-grade="correct">✓ Correct</button>
+          <button class="btn btn-incorrect" data-grade="incorrect">✗ Incorrect</button>
+        </div>
+      `;
+      card.querySelector('[data-grade="correct"]').addEventListener('click', () => gradeWriteSubmission(sub.id, true));
+      card.querySelector('[data-grade="incorrect"]').addEventListener('click', () => gradeWriteSubmission(sub.id, false));
+      listEl.appendChild(card);
+    });
+    showScreen('parentReview');
+  }
+
+  function gradeWriteSubmission(subId, wasCorrect){
+    const p = DB.players[currentPlayer];
+    const idx = (p.writeSubmissions || []).findIndex(s => s.id === subId);
+    if(idx === -1) return;
+    const sub = p.writeSubmissions[idx];
+    // Unifies with Pick the Letter / Flashcards under the same tricky-
+    // letters signal, rather than tracking Write!'s accuracy separately.
+    recordLetterAnswer(currentPlayer, sub.letterId, wasCorrect);
+    if(wasCorrect) addPoints(currentPlayer, 10);
+    p.writeSubmissions.splice(idx, 1);
+    saveData(DB);
+    renderParentReview();
+  }
+
+  document.getElementById('parentReviewBtn').addEventListener('click', renderParentReview);
+  document.getElementById('parentReviewBackBtn').addEventListener('click', showAlphabetHome);
+
+  /* ---------------- Tricky Letters ----------------
+     A simple list, deliberately not the full "My Progress" treatment
+     (no trend chart, no all-letters view) -- scoped smaller on purpose. */
+  function renderTrickyLetters(){
+    const listEl = document.getElementById('trickyLettersList');
+    listEl.innerHTML = "";
+    const stats = DB.players[currentPlayer].stats;
+    const entries = LETTER_BANK
+      .map(letter => ({ letter, s: stats[letter.id] }))
+      .filter(e => e.s && e.s.seen >= TRICKY_MIN_SEEN)
+      .map(e => ({ ...e, accuracy: e.s.correct / e.s.seen }))
+      .filter(e => e.accuracy <= TRICKY_MAX_ACCURACY)
+      .sort((a, b) => a.accuracy - b.accuracy);
+
+    if(entries.length === 0){
+      listEl.innerHTML = `<div class="empty-state">Play a few rounds first, and your trickiest letters will show up here! 🌱</div>`;
+      showScreen('trickyLetters');
+      return;
+    }
+
+    entries.forEach(entry => {
+      const pct = Math.round(entry.accuracy * 100);
+      const row = document.createElement('div');
+      row.className = 'weak-row';
+      row.innerHTML = `
+        <div class="weak-arabic arabic">${entry.letter.arabic}</div>
+        <div class="weak-info">
+          <div class="weak-english">${escapeHtml(entry.letter.name)}</div>
+          <div class="weak-sub">${entry.s.correct}/${entry.s.seen} correct</div>
+        </div>
+        <div class="weak-meter"><div class="weak-meter-fill ${accuracyTier(pct)}" style="width:${pct}%"></div></div>
+      `;
+      listEl.appendChild(row);
+    });
+    showScreen('trickyLetters');
+  }
+  document.getElementById('trickyLettersBtn').addEventListener('click', renderTrickyLetters);
+  document.getElementById('trickyLettersBackBtn').addEventListener('click', showAlphabetHome);
 
   /* ============================================================
      HELPERS

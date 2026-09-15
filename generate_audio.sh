@@ -2,11 +2,16 @@
 # Downloads two audio files per word in words.js:
 #   audio/<id>.mp3     the Arabic word
 #   audio/<id>_en.mp3  its English meaning
+# ...and one audio file per letter in letters.js:
+#   audio/<id>.mp3     the Arabic letter's name
 # Both use the Google Translate voice, so everything sounds consistent and
-# — importantly — the app never has to hit the network at play time.
+# — importantly — the app never has to hit the network at play time. Word
+# ids ("wNNN") and letter ids ("lNN") never collide, so both live side by
+# side in the same audio/ folder.
 #
-# Run this after adding new words to words.js. Safe to re-run any time —
-# words that already have a file in audio/ are skipped, not re-fetched.
+# Run this after adding new words to words.js or new letters to letters.js.
+# Safe to re-run any time — anything that already has a file in audio/ is
+# skipped, not re-fetched.
 #
 # Requires: bash + curl (Git Bash on Windows has both).
 # Optional: ffmpeg on PATH, for a clean single pronunciation (see below).
@@ -142,6 +147,21 @@ while IFS= read -r line; do
     sleep 1
   fi
 done < <(sed -n '/const WORD_BANK = \[/,/^\];/p' words.js | grep -E '^\s*\{\s*id:\s*"w[0-9]+".*arabic:')
+
+while IFS= read -r line; do
+  id=$(grep -oP '(?<=id: ")[^"]+' <<< "$line" || true)
+  arabic=$(grep -oP '(?<=arabic: ")[^"]+' <<< "$line" || true)
+  [ -z "$id" ] && continue
+  [ -z "$arabic" ] && continue
+
+  ar_out="audio/${id}.mp3"
+  if [ -f "$ar_out" ]; then
+    echo "skip   $id (already have audio)"
+  else
+    fetch_one "$id" "ar" "$arabic" "$ar_out" || true
+    sleep 1
+  fi
+done < <(sed -n '/const LETTER_BANK = \[/,/^\];/p' letters.js | grep -E '^\s*\{\s*id:\s*"l[0-9]+".*arabic:')
 
 # Fixed UI phrase (not a vocabulary word): Listen & Learn's quiz step says
 # "<Arabic word>" then this, forming "<word> means...", before the pause
