@@ -382,7 +382,7 @@
   .option-btn[disabled]{ pointer-events:none; }
 
   /* ---------- Pick the Letter ---------- */
-  .letter-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap:10px; }
+  .letter-grid{ display:grid; grid-template-columns: repeat(auto-fill, minmax(58px, 1fr)); gap:10px; direction: rtl; }
   .letter-tile{
     aspect-ratio: 1 / 1; border: none; border-radius: var(--radius-sm);
     background: var(--bg-deep); color: var(--ink-soft);
@@ -3066,6 +3066,7 @@
   document.getElementById('lfKnewItBtn').addEventListener('click', (e) => handleLetterSelfReport(true, e));
   document.getElementById('lfStillLearningBtn').addEventListener('click', (e) => handleLetterSelfReport(false, e));
   document.getElementById('lfBackBtn').addEventListener('click', showAlphabetHome);
+  document.getElementById('letterFlashBtn').addEventListener('click', startLetterFlash);
 
   /* ---------------- Shared alphabet round-done screen ----------------
      Kept separate from the vocab game's #screen-summary (whose Back
