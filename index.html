@@ -3016,6 +3016,11 @@
 
   function askPickLetterTarget(){
     plAnswered = false;
+    // Wrong guesses only stay marked red for the target they were wrong
+    // about -- clear them here so the grid doesn't turn increasingly red
+    // over the course of a round; green (already-found) tiles are left
+    // alone since those are genuinely done.
+    plTileEls.forEach(btn => btn.classList.remove('tried'));
     updateProgressBar('plProgress', plTargetIdx, plOrder.length);
     document.getElementById('plRoundPoints').textContent = plRoundPoints;
     setTimeout(() => speakLetter(plOrder[plTargetIdx]), 300);
@@ -3084,7 +3089,8 @@
     document.getElementById('lfRoundPoints').textContent = lfRoundPoints;
     const letter = lfQueue[lfIndex];
     document.getElementById('lfGlyph').textContent = letter.arabic;
-    setTimeout(() => speakLetter(letter), 250);
+    // No auto-play here on purpose -- the player has to tap the card to
+    // hear it, unlike vocab's flashcards which speak on load.
   }
 
   document.getElementById('lfCard').addEventListener('click', () => {
@@ -3176,15 +3182,27 @@
     ltCtx.stroke();
     ltLastPoint = { x, y };
   }
-  function ltEndStroke(){ ltDrawing = false; ltLastPoint = null; }
+  // Tracks which single pointer is currently drawing, so a second finger
+  // touching down mid-stroke is ignored rather than starting its own
+  // stroke -- without this, ltLastPoint (a single shared point) would
+  // jump between two fingers' positions and draw stray connecting lines.
+  let ltActivePointerId = null;
+  function ltEndStroke(e){
+    if(e && e.pointerId !== ltActivePointerId) return;
+    ltDrawing = false;
+    ltLastPoint = null;
+    ltActivePointerId = null;
+  }
   ltCanvas.addEventListener('pointerdown', (e) => {
+    if(ltDrawing) return; // a stroke is already in progress -- ignore a second touch
     ltDrawing = true;
+    ltActivePointerId = e.pointerId;
     ltCanvas.setPointerCapture(e.pointerId);
     const p = ltPointFromEvent(e);
     ltStrokeTo(p.x, p.y);
   });
   ltCanvas.addEventListener('pointermove', (e) => {
-    if(!ltDrawing) return;
+    if(!ltDrawing || e.pointerId !== ltActivePointerId) return;
     const p = ltPointFromEvent(e);
     ltStrokeTo(p.x, p.y);
   });

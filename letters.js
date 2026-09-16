@@ -9,10 +9,12 @@
 
    Ordered Qaida-style, as used in Noorani Qaida / madrasah children's
    primers: identical to the standard dictionary order except for the
-   last four letters, where و comes before ه (ن و ه ي, not the
-   dictionary's ن ه و ي).
+   last four of the 28 letters, where و comes before ه (ن و ه ي, not the
+   dictionary's ن ه و ي). ء (hamza) is appended as a 29th entry, as many
+   of those same primers teach it -- it isn't part of the 28-letter
+   alphabet proper.
 
-   id              Must be unique ("l01".."l28"). Kept separate from
+   id              Must be unique ("l01".."l29"). Kept separate from
                    words.js's "wNNN" ids so both can share the same
                    audio/ folder and the same per-player stats without
                    ever colliding.
@@ -60,4 +62,5 @@ const LETTER_BANK = [
   { id: "l26", arabic: "و", name: "Waaw", audio: "26-waw.mp3" },
   { id: "l27", arabic: "ه", name: "Haa (light)", audio: "27-haa2.mp3" },
   { id: "l28", arabic: "ي", name: "Yaa", audio: "28-yaa.mp3" },
+  { id: "l29", arabic: "ء", name: "Hamza", audio: "29-hamza.mp3" },
 ];
