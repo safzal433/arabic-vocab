@@ -855,6 +855,11 @@
             <h3>Flashcards</h3>
             <p>See a letter, tap to hear it, then say if you knew it.</p>
           </button>
+          <button class="mode-card gold" id="letterExploreBtn">
+            <div class="mode-icon">🔎</div>
+            <h3>Explore</h3>
+            <p>See every letter in order. Tap any one to hear it, no quiz.</p>
+          </button>
         </div>
       </div>
 
@@ -1059,6 +1064,18 @@
         <div class="mc-caption">Listen, then tap the matching letter</div>
       </div>
       <div class="letter-grid" id="plGrid"></div>
+    </div>
+  </section>
+
+  <!-- SCREEN: Letter Explore -->
+  <section id="screen-letter-explore" class="hidden">
+    <div class="panel">
+      <div class="game-topbar">
+        <button class="back-btn" id="leBackBtn" aria-label="Back">←</button>
+        <h2 class="screen-title" style="margin:0; flex:1;">Explore</h2>
+      </div>
+      <p class="screen-sub" style="margin-top:-6px;">Tap any letter to hear it.</p>
+      <div class="letter-grid" id="leGrid"></div>
     </div>
   </section>
 
@@ -1689,6 +1706,7 @@
     gameChoice: document.getElementById('screen-game-choice'),
     alphabetHome: document.getElementById('screen-alphabet-home'),
     pickLetter: document.getElementById('screen-pick-letter'),
+    letterExplore: document.getElementById('screen-letter-explore'),
     letterFlash: document.getElementById('screen-letter-flash'),
     letterTrace: document.getElementById('screen-letter-trace'),
     letterWrite: document.getElementById('screen-letter-write'),
@@ -3068,6 +3086,27 @@
 
   document.getElementById('pickLetterBtn').addEventListener('click', startPickLetter);
   document.getElementById('plBackBtn').addEventListener('click', showAlphabetHome);
+
+  /* ---------------- Explore ----------------
+     A plain browsable chart: every letter, in order, tap any one to hear
+     it. No quiz, no scoring, no points -- same "just practice" spirit as
+     Tracing. Reuses the same .letter-grid/.letter-tile styling as Pick
+     the Letter, built fresh each time (no correct/tried state to manage
+     here, so there's no need to cache the tiles across visits). */
+  function startLetterExplore(){
+    const grid = document.getElementById('leGrid');
+    grid.innerHTML = "";
+    LETTER_BANK.forEach(letter => {
+      const btn = document.createElement('button');
+      btn.className = 'letter-tile arabic';
+      btn.textContent = letter.arabic;
+      btn.addEventListener('click', () => speakLetter(letter));
+      grid.appendChild(btn);
+    });
+    showScreen('letterExplore');
+  }
+  document.getElementById('letterExploreBtn').addEventListener('click', startLetterExplore);
+  document.getElementById('leBackBtn').addEventListener('click', showAlphabetHome);
 
   /* ---------------- Letter Flashcards ---------------- */
   let lfQueue = [];
