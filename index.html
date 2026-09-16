@@ -2871,10 +2871,55 @@
      showFloatingPoints, updateProgressBar, accuracyTier.
      ============================================================ */
 
+  // A real person's recording of a letter's name, correct makhraj --
+  // preferred ahead of the Google-voice audio/lNN.mp3 files (see
+  // playLocalAudio above), which stay in place purely as a fallback for
+  // any letter whose personal recording is ever missing. Same
+  // load/cache/timeout shape as playLocalAudio, kept separate rather than
+  // shared because these live in their own audio/alphabet/ subfolder
+  // under filenames that don't derive from the letter id.
+  const letterRecordingCache = new Map();
+  function playLetterRecording(filename){
+    const file = AUDIO_DIR + 'alphabet/' + filename;
+    return new Promise((resolve, reject) => {
+      let audio = letterRecordingCache.get(filename);
+      if(audio){
+        playFromZero(audio).then(resolve).catch(reject);
+        return;
+      }
+      audio = new Audio(file);
+      let settled = false;
+      const timer = setTimeout(() => {
+        if(settled) return;
+        settled = true;
+        reject(new Error("letter recording timeout: " + file));
+      }, LOCAL_AUDIO_TIMEOUT_MS);
+
+      audio.addEventListener('canplaythrough', () => {
+        if(settled) return;
+        settled = true;
+        clearTimeout(timer);
+        letterRecordingCache.set(filename, audio);
+        playFromZero(audio).then(resolve).catch(reject);
+      }, { once: true });
+
+      audio.addEventListener('error', () => {
+        if(settled) return;
+        settled = true;
+        clearTimeout(timer);
+        reject(new Error("letter recording missing: " + file));
+      }, { once: true });
+
+      audio.load();
+    });
+  }
+
   function speakLetter(letter){
     if(!letter || !letter.arabic) return;
     if('speechSynthesis' in window) speechSynthesis.cancel();
-    playLocalAudio(letter.id)
+    const tryPersonal = letter.audio ? playLetterRecording(letter.audio) : Promise.reject();
+    tryPersonal
+      .catch(() => playLocalAudio(letter.id))
       .catch(() => playGoogleTts(letter.arabic))
       .catch(() => speakWithBrowser(letter.arabic));
   }
