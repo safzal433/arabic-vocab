@@ -61,6 +61,6 @@ const LETTER_BANK = [
   { id: "l25", arabic: "ن", name: "Noon", audio: "25-noon.mp3" },
   { id: "l26", arabic: "و", name: "Waaw", audio: "26-waw.mp3" },
   { id: "l27", arabic: "ه", name: "Haa (light)", audio: "27-haa2.mp3" },
-  { id: "l28", arabic: "ي", name: "Yaa", audio: "28-yaa.mp3" },
+  { id: "l28", arabic: "ي", name: "Yaa" }, // no audio field yet -- 28-yaa.mp3 turned out to actually be hamza (moved to l29 below); falls back to the Google voice until a correct "yaa" recording replaces it
   { id: "l29", arabic: "ء", name: "Hamza", audio: "29-hamza.mp3" },
 ];
