@@ -7,12 +7,10 @@
    connected to neighbors — since the game teaches letter recognition,
    not handwriting joins.
 
-   Ordered Qaida-style, as used in Noorani Qaida / madrasah children's
-   primers: identical to the standard dictionary order except for the
-   last four of the 28 letters, where و comes before ه (ن و ه ي, not the
-   dictionary's ن ه و ي). ء (hamza) is appended as a 29th entry, as many
-   of those same primers teach it -- it isn't part of the 28-letter
-   alphabet proper.
+   Ordered to match the primer this family is using: identical to the
+   standard dictionary order through ل (laam), then م ن ه و ء ي (Meem,
+   Noon, Haa, Waaw, Hamza, Yaa) -- hamza slotted in right before yaa
+   rather than treated as separate from the 28-letter alphabet.
 
    id              Must be unique ("l01".."l29"). Kept separate from
                    words.js's "wNNN" ids so both can share the same
@@ -59,8 +57,8 @@ const LETTER_BANK = [
   { id: "l23", arabic: "ل", name: "Laam", audio: "23-laam.mp3" },
   { id: "l24", arabic: "م", name: "Meem", audio: "24-meem.mp3" },
   { id: "l25", arabic: "ن", name: "Noon", audio: "25-noon.mp3" },
-  { id: "l26", arabic: "و", name: "Waaw", audio: "26-waw.mp3" },
-  { id: "l27", arabic: "ه", name: "Haa (light)", audio: "27-haa2.mp3" },
-  { id: "l28", arabic: "ي", name: "Yaa" }, // no audio field yet -- 28-yaa.mp3 turned out to actually be hamza (moved to l29 below); falls back to the Google voice until a correct "yaa" recording replaces it
-  { id: "l29", arabic: "ء", name: "Hamza", audio: "29-hamza.mp3" },
+  { id: "l26", arabic: "ه", name: "Haa (light)", audio: "27-haa2.mp3" },
+  { id: "l27", arabic: "و", name: "Waaw", audio: "26-waw.mp3" },
+  { id: "l28", arabic: "ء", name: "Hamza", audio: "28-hamza.mp3" },
+  { id: "l29", arabic: "ي", name: "Yaa", audio: "29-yaa.mp3" },
 ];
