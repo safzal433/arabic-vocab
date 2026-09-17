@@ -402,6 +402,10 @@
   /* ---------- Explore (same grid, no quiz state to dim for) ---------- */
   #leGrid .letter-tile{ opacity:1; color: var(--ink); font-size: 2.1rem; }
 
+  /* ---------- Find the Forms (fixed 3x3 grid of 9 tiles) ---------- */
+  #mfOptions{ grid-template-columns: repeat(3, 1fr); }
+  #mfOptions .letter-tile{ opacity:1; color: var(--ink); font-size: 2.4rem; }
+
   /* ---------- Letter Flashcards ---------- */
   .letter-card{
     width: 100%; max-width: 300px; height: 260px;
@@ -880,7 +884,7 @@
           <button class="mode-card listen" id="matchFormsBtn">
             <div class="mode-icon">🧩</div>
             <h3>Find the Forms</h3>
-            <p>See a letter, then find all its other shapes among 10 choices.</p>
+            <p>See a letter, then find all its other shapes among 9 choices.</p>
           </button>
         </div>
       </div>
@@ -3297,8 +3301,8 @@
 
   /* ---------------- Find the Forms ----------------
      One target letter shown in isolated form; the player must find its
-     beginning, middle, and end forms among 10 tiles (3 correct + 7
-     decoys drawn from other letters). Taps toggle a tentative
+     beginning, middle, and end forms among 9 tiles in a 3x3 grid
+     (3 correct + 6 decoys drawn from other letters). Taps toggle a tentative
      "selected" state; Check locks each selected tile in as correct
      (green, done) or wrong (red, removed from play) without revealing
      which of the untouched tiles were the ones still to find -- same
@@ -3336,7 +3340,7 @@
     const seenKeys = new Set(correctEntries.map(e => e.letter.id + '-' + e.position));
     const otherLetters = LETTER_BANK.filter(l => l.id !== target.id);
     let guard = 0; // safety valve -- LETTER_BANK is small and fixed, but avoid ever looping forever
-    while(decoyEntries.length < 7 && guard < 500){
+    while(decoyEntries.length < 6 && guard < 500){
       guard += 1;
       const letter = otherLetters[Math.floor(Math.random() * otherLetters.length)];
       const position = LETTER_FORM_POSITIONS[Math.floor(Math.random() * LETTER_FORM_POSITIONS.length)];
