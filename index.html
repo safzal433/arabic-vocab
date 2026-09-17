@@ -366,6 +366,7 @@
   }
   .listen-btn:active{ transform: scale(0.92); }
   .mc-prompt-word{ font-size:1.9rem; font-weight:800; }
+  .mc-prompt-word.letter-form{ font-size:4.5rem; font-weight:400; }
   .mc-caption{ font-size:0.9rem; opacity:0.9; }
 
   .options-grid{ display:grid; grid-template-columns: 1fr 1fr; gap: 14px; }
@@ -394,6 +395,8 @@
   .letter-tile:active{ transform: scale(0.92); }
   .letter-tile.tried{ opacity:1; background: var(--coral-pale); color:#7A2A16; }
   .letter-tile.correct{ opacity:1; background: var(--leaf-pale); color:#22532F; border-color: var(--leaf); }
+  .letter-tile.incorrect{ opacity:1; background: var(--coral-pale); color:#7A2A16; border-color: var(--coral); }
+  .letter-tile.selected{ opacity:1; background: var(--gold); color:#4A3200; border-color: var(--gold-deep); }
   .letter-tile[disabled]{ pointer-events:none; }
 
   /* ---------- Explore (same grid, no quiz state to dim for) ---------- */
@@ -867,6 +870,22 @@
       </div>
 
       <div class="mode-section">
+        <h3 class="mode-section-title">Letter Forms</h3>
+        <div class="mode-grid">
+          <button class="mode-card coral2" id="spotLetterBtn">
+            <div class="mode-icon">🔍</div>
+            <h3>Spot the Letter</h3>
+            <p>See a letter's beginning, middle, or end shape -- tap which letter it is.</p>
+          </button>
+          <button class="mode-card listen" id="matchFormsBtn">
+            <div class="mode-icon">🧩</div>
+            <h3>Find the Forms</h3>
+            <p>See a letter, then find all its other shapes among 10 choices.</p>
+          </button>
+        </div>
+      </div>
+
+      <div class="mode-section">
         <h3 class="mode-section-title">Practice writing</h3>
         <div class="mode-grid">
           <button class="mode-card hand" id="letterTraceBtn">
@@ -1079,6 +1098,41 @@
       </div>
       <p class="screen-sub" style="margin-top:-6px;">Tap any letter to hear it.</p>
       <div class="letter-grid" id="leGrid"></div>
+    </div>
+  </section>
+
+  <!-- SCREEN: Spot the Letter -->
+  <section id="screen-spot-letter" class="hidden">
+    <div class="panel">
+      <h2 class="screen-title mode-title">Spot the Letter</h2>
+      <div class="game-topbar">
+        <button class="back-btn" id="slBackBtn" aria-label="Back">←</button>
+        <div class="progress-track"><div class="progress-fill" id="slProgress"></div></div>
+        <div class="round-points">⭐ <span id="slRoundPoints">0</span></div>
+      </div>
+      <div class="mc-prompt">
+        <div class="mc-prompt-word letter-form arabic" id="slPromptGlyph"></div>
+        <div class="mc-caption" id="slCaption">Which letter is this?</div>
+      </div>
+      <div class="options-grid" id="slOptions"></div>
+    </div>
+  </section>
+
+  <!-- SCREEN: Find the Forms -->
+  <section id="screen-match-forms" class="hidden">
+    <div class="panel">
+      <h2 class="screen-title mode-title">Find the Forms</h2>
+      <div class="game-topbar">
+        <button class="back-btn" id="mfBackBtn" aria-label="Back">←</button>
+        <div class="progress-track"><div class="progress-fill" id="mfProgress"></div></div>
+        <div class="round-points">⭐ <span id="mfRoundPoints">0</span></div>
+      </div>
+      <div class="mc-prompt">
+        <div class="mc-prompt-word letter-form arabic" id="mfPromptGlyph"></div>
+        <div class="mc-caption" id="mfCaption">Find all 3 other shapes of this letter</div>
+      </div>
+      <div class="letter-grid" id="mfOptions"></div>
+      <button class="btn btn-primary btn-block" id="mfCheckBtn" style="margin-top:16px;">Check</button>
     </div>
   </section>
 
@@ -1710,6 +1764,8 @@
     alphabetHome: document.getElementById('screen-alphabet-home'),
     pickLetter: document.getElementById('screen-pick-letter'),
     letterExplore: document.getElementById('screen-letter-explore'),
+    spotLetter: document.getElementById('screen-spot-letter'),
+    matchForms: document.getElementById('screen-match-forms'),
     letterFlash: document.getElementById('screen-letter-flash'),
     letterTrace: document.getElementById('screen-letter-trace'),
     letterWrite: document.getElementById('screen-letter-write'),
@@ -2958,6 +3014,41 @@
     saveData(DB);
   }
 
+  /* ---- Contextual letter forms (beginning/middle/end) ----
+     Arabic letters change shape depending on where they sit in a word.
+     Rather than a hand-typed table of ~100 individual glyphs (high risk
+     of a wrong character slipping in unnoticed), each form is built by
+     wrapping the base letter in zero-width joiners (U+200D) and letting
+     the browser's own Arabic text shaping -- the same standard joining
+     algorithm every Arabic font implements -- pick the correct glyph:
+     a joiner on a side signals "there's a connection here" without
+     needing an actual neighboring letter. This also gets the tricky
+     cases right for free, with no special-casing: hamza (ء) never
+     connects at all, so ZWJ has no effect on it and it always renders
+     the same; the six "sun-adjacent" non-connecting letters (ا د ذ ر ز و)
+     only connect from the right, so their beginning form equals their
+     isolated form and their middle form equals their end form -- exactly
+     the linguistically correct behavior, produced automatically by the
+     shaping engine rather than something this code has to know about. */
+  const ZWJ = '‍';
+  function letterFormText(letter, position){
+    if(position === 'begin') return letter.arabic + ZWJ;
+    if(position === 'end') return ZWJ + letter.arabic;
+    if(position === 'middle') return ZWJ + letter.arabic + ZWJ;
+    return letter.arabic; // 'isolated'
+  }
+  const LETTER_FORM_POSITIONS = ['begin', 'middle', 'end'];
+  // Letters whose beginning/middle/end forms aren't all visually distinct
+  // from each other (the six non-connectors above, plus hamza) are still
+  // fine to show as MC distractors, but make poor "find all 3 forms"
+  // targets -- two of the three tiles would look identical, which reads
+  // as a bug rather than a fact about Arabic. Excluded from that game's
+  // target pool only.
+  const LETTER_FORMS_EXCLUDED_TARGETS = new Set(['l01', 'l08', 'l09', 'l10', 'l11', 'l27', 'l28']);
+  function lettersEligibleForFormsTarget(){
+    return LETTER_BANK.filter(l => !LETTER_FORMS_EXCLUDED_TARGETS.has(l.id));
+  }
+
   // A short synthesized "sparkle" chime for a correct Pick the Letter
   // answer -- an ascending four-note arpeggio via the Web Audio API, so
   // no audio asset is needed and it still works fully offline.
@@ -3110,6 +3201,215 @@
   }
   document.getElementById('letterExploreBtn').addEventListener('click', startLetterExplore);
   document.getElementById('leBackBtn').addEventListener('click', showAlphabetHome);
+
+  /* ---------------- Spot the Letter ----------------
+     A beginning/middle/end form of a random letter is shown; the player
+     picks which letter it is from 4 choices (each shown in isolated
+     form, since that's the letter's "name" shape). Same retry-until-
+     correct mechanic as the vocab quiz and Pick the Letter: a wrong
+     pick flashes red and disables, the round only advances on success. */
+  let slQueue = [];       // this round's {letter, position} targets, one per LETTER_BANK entry
+  let slIndex = 0;
+  let slRoundPoints = 0;
+  let slRoundCorrect = 0;
+  let slAnswered = false;
+
+  function buildSpotLetterQueue(){
+    return shuffle(LETTER_BANK.map(letter => ({
+      letter,
+      position: LETTER_FORM_POSITIONS[Math.floor(Math.random() * LETTER_FORM_POSITIONS.length)],
+    })));
+  }
+
+  function startSpotLetter(){
+    slQueue = buildSpotLetterQueue();
+    slIndex = 0;
+    slRoundPoints = 0;
+    slRoundCorrect = 0;
+    showScreen('spotLetter');
+    loadSpotLetterQuestion();
+  }
+
+  function loadSpotLetterQuestion(){
+    slAnswered = false;
+    const { letter, position } = slQueue[slIndex];
+    updateProgressBar('slProgress', slIndex, slQueue.length);
+    document.getElementById('slRoundPoints').textContent = slRoundPoints;
+    document.getElementById('slPromptGlyph').textContent = letterFormText(letter, position);
+
+    const distractors = [];
+    const pool = shuffle(LETTER_BANK.filter(l => l.id !== letter.id).slice());
+    while(distractors.length < 3 && pool.length){
+      distractors.push(pool.pop());
+    }
+    const options = shuffle([letter, ...distractors]);
+
+    const optionsEl = document.getElementById('slOptions');
+    optionsEl.innerHTML = "";
+    options.forEach(opt => {
+      const btn = document.createElement('button');
+      btn.className = 'option-btn arabic';
+      btn.textContent = opt.arabic;
+      btn.addEventListener('click', (e) => handleSpotLetterAnswer(opt, letter, btn, e));
+      optionsEl.appendChild(btn);
+    });
+  }
+
+  function handleSpotLetterAnswer(chosen, target, btnEl, evt){
+    const isCorrect = chosen.id === target.id;
+
+    if(!slAnswered){
+      slAnswered = true;
+      recordLetterAnswer(currentPlayer, target.id, isCorrect);
+    }
+
+    if(!isCorrect){
+      btnEl.classList.add('incorrect');
+      btnEl.disabled = true;
+      showCelebration('Try again! 🤔', btnEl, 'warn');
+      return;
+    }
+
+    const allBtns = document.querySelectorAll('#slOptions .option-btn');
+    allBtns.forEach(b => { b.disabled = true; if(b.textContent === target.arabic) b.classList.add('correct'); });
+    playSparkleSound();
+
+    const pts = 10;
+    slRoundPoints += pts;
+    slRoundCorrect += 1;
+    addPoints(currentPlayer, pts);
+    document.getElementById('slRoundPoints').textContent = slRoundPoints;
+    showFloatingPoints(evt, `+${pts}`);
+    showCelebration('Good job! 🎉', btnEl);
+
+    setTimeout(() => {
+      slIndex += 1;
+      if(slIndex >= slQueue.length){
+        finishAlphabetRound('Spot the Letter', slRoundPoints, slRoundCorrect, slQueue.length);
+      } else {
+        loadSpotLetterQuestion();
+      }
+    }, 1100);
+  }
+
+  document.getElementById('spotLetterBtn').addEventListener('click', startSpotLetter);
+  document.getElementById('slBackBtn').addEventListener('click', showAlphabetHome);
+
+  /* ---------------- Find the Forms ----------------
+     One target letter shown in isolated form; the player must find its
+     beginning, middle, and end forms among 10 tiles (3 correct + 7
+     decoys drawn from other letters). Taps toggle a tentative
+     "selected" state; Check locks each selected tile in as correct
+     (green, done) or wrong (red, removed from play) without revealing
+     which of the untouched tiles were the ones still to find -- same
+     "keep trying" spirit as the rest of the app's quizzes, just applied
+     to a multi-pick question instead of a single click. */
+  let mfQueue = [];        // this round's target letters (only the ones with 3 genuinely distinct forms)
+  let mfIndex = 0;
+  let mfRoundPoints = 0;
+  let mfRoundCorrect = 0;
+  let mfTiles = [];        // [{key, letter, position, isCorrect, el}] for the current target
+  let mfFoundCount = 0;
+  let mfCheckedOnce = false;
+
+  function startMatchForms(){
+    mfQueue = shuffle(lettersEligibleForFormsTarget());
+    mfIndex = 0;
+    mfRoundPoints = 0;
+    mfRoundCorrect = 0;
+    showScreen('matchForms');
+    loadMatchFormsRound();
+  }
+
+  function loadMatchFormsRound(){
+    mfCheckedOnce = false;
+    mfFoundCount = 0;
+    const target = mfQueue[mfIndex];
+    updateProgressBar('mfProgress', mfIndex, mfQueue.length);
+    document.getElementById('mfRoundPoints').textContent = mfRoundPoints;
+    document.getElementById('mfPromptGlyph').textContent = target.arabic;
+    document.getElementById('mfCheckBtn').disabled = false;
+
+    const correctEntries = LETTER_FORM_POSITIONS.map(position => ({ letter: target, position, isCorrect: true }));
+
+    const decoyEntries = [];
+    const seenKeys = new Set(correctEntries.map(e => e.letter.id + '-' + e.position));
+    const otherLetters = LETTER_BANK.filter(l => l.id !== target.id);
+    let guard = 0; // safety valve -- LETTER_BANK is small and fixed, but avoid ever looping forever
+    while(decoyEntries.length < 7 && guard < 500){
+      guard += 1;
+      const letter = otherLetters[Math.floor(Math.random() * otherLetters.length)];
+      const position = LETTER_FORM_POSITIONS[Math.floor(Math.random() * LETTER_FORM_POSITIONS.length)];
+      const key = letter.id + '-' + position;
+      if(seenKeys.has(key)) continue;
+      seenKeys.add(key);
+      decoyEntries.push({ letter, position, isCorrect: false });
+    }
+
+    const entries = shuffle([...correctEntries, ...decoyEntries]);
+    const grid = document.getElementById('mfOptions');
+    grid.innerHTML = "";
+    mfTiles = entries.map(entry => {
+      const btn = document.createElement('button');
+      btn.className = 'letter-tile arabic';
+      btn.textContent = letterFormText(entry.letter, entry.position);
+      const tile = { key: entry.letter.id + '-' + entry.position, letter: entry.letter, position: entry.position, isCorrect: entry.isCorrect, el: btn };
+      btn.addEventListener('click', () => toggleMatchFormsTile(tile));
+      grid.appendChild(btn);
+      return tile;
+    });
+  }
+
+  function toggleMatchFormsTile(tile){
+    if(tile.el.disabled) return; // already locked in from a previous Check
+    tile.el.classList.toggle('selected');
+  }
+
+  document.getElementById('mfCheckBtn').addEventListener('click', () => {
+    const target = mfQueue[mfIndex];
+    const selectedTiles = mfTiles.filter(t => !t.el.disabled && t.el.classList.contains('selected'));
+
+    if(!mfCheckedOnce){
+      mfCheckedOnce = true;
+      const isPerfectFirstTry = selectedTiles.length === 3 && selectedTiles.every(t => t.isCorrect);
+      recordLetterAnswer(currentPlayer, target.id, isPerfectFirstTry);
+    }
+
+    selectedTiles.forEach(t => {
+      t.el.classList.remove('selected');
+      t.el.disabled = true;
+      if(t.isCorrect){
+        t.el.classList.add('correct');
+        mfFoundCount += 1;
+      } else {
+        t.el.classList.add('incorrect');
+      }
+    });
+
+    if(mfFoundCount >= 3){
+      playSparkleSound();
+      const pts = 10;
+      mfRoundPoints += pts;
+      mfRoundCorrect += 1;
+      addPoints(currentPlayer, pts);
+      document.getElementById('mfRoundPoints').textContent = mfRoundPoints;
+      document.getElementById('mfCheckBtn').disabled = true;
+      showCelebration('Good job! 🎉', document.getElementById('mfCheckBtn'));
+      setTimeout(() => {
+        mfIndex += 1;
+        if(mfIndex >= mfQueue.length){
+          finishAlphabetRound('Find the Forms', mfRoundPoints, mfRoundCorrect, mfQueue.length);
+        } else {
+          loadMatchFormsRound();
+        }
+      }, 1100);
+    } else {
+      showCelebration('Keep looking! 🔎', document.getElementById('mfCheckBtn'), 'warn');
+    }
+  });
+
+  document.getElementById('matchFormsBtn').addEventListener('click', startMatchForms);
+  document.getElementById('mfBackBtn').addEventListener('click', showAlphabetHome);
 
   /* ---------------- Letter Flashcards ---------------- */
   let lfQueue = [];
