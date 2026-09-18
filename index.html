@@ -2171,6 +2171,7 @@
   const mcOptionsEl = document.getElementById('mcOptions');
 
   let mcQuestionAnswered = false; // true once this question's first attempt has been recorded
+  let mcFirstAttemptCorrect = false; // whether that first attempt was actually right -- points are gated on this, not on eventually finding the answer
 
   function mcDisplayField(){
     return currentMode === 'mc-en-ar' ? 'arabic' : 'english';
@@ -2180,6 +2181,7 @@
     updateProgressBar('mcProgress', roundIndex, roundQueue.length);
     document.getElementById('mcRoundPoints').textContent = roundPoints;
     mcQuestionAnswered = false;
+    mcFirstAttemptCorrect = false;
 
     const word = roundQueue[roundIndex];
     const field = mcDisplayField();
@@ -2244,6 +2246,7 @@
 
     if(!mcQuestionAnswered){
       mcQuestionAnswered = true;
+      mcFirstAttemptCorrect = isCorrect;
       // Only the first attempt feeds the persisted per-word stat that
       // Tricky Words is built from — a retry landing on the right answer
       // still earns the celebration below, but doesn't count as "correct"
@@ -2265,12 +2268,18 @@
       if(b.textContent === word[field]) b.classList.add('correct');
     });
 
-    const pts = 10;
-    roundPoints += pts;
-    roundCorrect += 1;
-    addPoints(currentPlayer, pts);
-    document.getElementById('mcRoundPoints').textContent = roundPoints;
-    showFloatingPoints(evt, `+${pts}`);
+    // Points (and the round's "X out of Y" accuracy) only count a
+    // question solved on the very first try -- needing a retry still
+    // advances the round, just without a reward, so retrying isn't a
+    // free way to bank the same points as getting it right immediately.
+    if(mcFirstAttemptCorrect){
+      const pts = 10;
+      roundPoints += pts;
+      roundCorrect += 1;
+      addPoints(currentPlayer, pts);
+      document.getElementById('mcRoundPoints').textContent = roundPoints;
+      showFloatingPoints(evt, `+${pts}`);
+    }
     showCelebration('Good job! 🎉', btnEl);
 
     setTimeout(() => {
@@ -3101,6 +3110,7 @@
   let plRoundPoints = 0;
   let plRoundCorrect = 0;
   let plAnswered = false;  // true once the current target's first attempt is recorded
+  let plFirstAttemptCorrect = false; // whether that first attempt was actually right -- points require this, not just eventually finding the tile
   let plTileEls = [];      // LETTER_BANK-order array of tile buttons, built once
 
   function buildPickLetterGrid(){
@@ -3132,6 +3142,7 @@
 
   function askPickLetterTarget(){
     plAnswered = false;
+    plFirstAttemptCorrect = false;
     // Wrong guesses only stay marked red for the target they were wrong
     // about -- clear them here so the grid doesn't turn increasingly red
     // over the course of a round; green (already-found) tiles are left
@@ -3152,6 +3163,7 @@
 
     if(!plAnswered){
       plAnswered = true;
+      plFirstAttemptCorrect = isCorrect;
       recordLetterAnswer(currentPlayer, target.id, isCorrect);
     }
 
@@ -3165,11 +3177,16 @@
     btnEl.disabled = true;
     playSparkleSound();
 
-    const pts = 10;
-    plRoundPoints += pts;
-    plRoundCorrect += 1;
-    addPoints(currentPlayer, pts);
-    document.getElementById('plRoundPoints').textContent = plRoundPoints;
+    // Points only for a target found on the first tap -- a retry after a
+    // wrong guess still finds the letter and moves the round along, just
+    // without a reward.
+    if(plFirstAttemptCorrect){
+      const pts = 10;
+      plRoundPoints += pts;
+      plRoundCorrect += 1;
+      addPoints(currentPlayer, pts);
+      document.getElementById('plRoundPoints').textContent = plRoundPoints;
+    }
     showCelebration('Good job! ✨', btnEl);
 
     setTimeout(() => {
@@ -3217,6 +3234,7 @@
   let slRoundPoints = 0;
   let slRoundCorrect = 0;
   let slAnswered = false;
+  let slFirstAttemptCorrect = false; // whether that first attempt was actually right -- points require this, not just eventually finding it
 
   function buildSpotLetterQueue(){
     return shuffle(LETTER_BANK.map(letter => ({
@@ -3236,6 +3254,7 @@
 
   function loadSpotLetterQuestion(){
     slAnswered = false;
+    slFirstAttemptCorrect = false;
     const { letter, position } = slQueue[slIndex];
     updateProgressBar('slProgress', slIndex, slQueue.length);
     document.getElementById('slRoundPoints').textContent = slRoundPoints;
@@ -3264,6 +3283,7 @@
 
     if(!slAnswered){
       slAnswered = true;
+      slFirstAttemptCorrect = isCorrect;
       recordLetterAnswer(currentPlayer, target.id, isCorrect);
     }
 
@@ -3278,12 +3298,17 @@
     allBtns.forEach(b => { b.disabled = true; if(b.textContent === target.arabic) b.classList.add('correct'); });
     playSparkleSound();
 
-    const pts = 10;
-    slRoundPoints += pts;
-    slRoundCorrect += 1;
-    addPoints(currentPlayer, pts);
-    document.getElementById('slRoundPoints').textContent = slRoundPoints;
-    showFloatingPoints(evt, `+${pts}`);
+    // Points only for a letter spotted on the first tap -- a retry after
+    // a wrong guess still finds it and moves the round along, just
+    // without a reward.
+    if(slFirstAttemptCorrect){
+      const pts = 10;
+      slRoundPoints += pts;
+      slRoundCorrect += 1;
+      addPoints(currentPlayer, pts);
+      document.getElementById('slRoundPoints').textContent = slRoundPoints;
+      showFloatingPoints(evt, `+${pts}`);
+    }
     showCelebration('Good job! 🎉', btnEl);
 
     setTimeout(() => {
@@ -3315,6 +3340,7 @@
   let mfTiles = [];        // [{key, letter, position, isCorrect, el}] for the current target
   let mfFoundCount = 0;
   let mfCheckedOnce = false;
+  let mfFirstAttemptPerfect = false; // whether the very first Check already had exactly the 3 right tiles selected -- points require this, not just eventually finding all 3
 
   function startMatchForms(){
     mfQueue = shuffle(lettersEligibleForFormsTarget());
@@ -3327,6 +3353,7 @@
 
   function loadMatchFormsRound(){
     mfCheckedOnce = false;
+    mfFirstAttemptPerfect = false;
     mfFoundCount = 0;
     const target = mfQueue[mfIndex];
     updateProgressBar('mfProgress', mfIndex, mfQueue.length);
@@ -3375,8 +3402,8 @@
 
     if(!mfCheckedOnce){
       mfCheckedOnce = true;
-      const isPerfectFirstTry = selectedTiles.length === 3 && selectedTiles.every(t => t.isCorrect);
-      recordLetterAnswer(currentPlayer, target.id, isPerfectFirstTry);
+      mfFirstAttemptPerfect = selectedTiles.length === 3 && selectedTiles.every(t => t.isCorrect);
+      recordLetterAnswer(currentPlayer, target.id, mfFirstAttemptPerfect);
     }
 
     selectedTiles.forEach(t => {
@@ -3392,11 +3419,16 @@
 
     if(mfFoundCount >= 3){
       playSparkleSound();
-      const pts = 10;
-      mfRoundPoints += pts;
-      mfRoundCorrect += 1;
-      addPoints(currentPlayer, pts);
-      document.getElementById('mfRoundPoints').textContent = mfRoundPoints;
+      // Points only if the very first Check already had exactly the 3
+      // right tiles -- needing a second (or third) Check still completes
+      // the round, just without a reward.
+      if(mfFirstAttemptPerfect){
+        const pts = 10;
+        mfRoundPoints += pts;
+        mfRoundCorrect += 1;
+        addPoints(currentPlayer, pts);
+        document.getElementById('mfRoundPoints').textContent = mfRoundPoints;
+      }
       document.getElementById('mfCheckBtn').disabled = true;
       showCelebration('Good job! 🎉', document.getElementById('mfCheckBtn'));
       setTimeout(() => {
