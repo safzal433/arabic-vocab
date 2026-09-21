@@ -3360,6 +3360,7 @@
     document.getElementById('mfRoundPoints').textContent = mfRoundPoints;
     document.getElementById('mfPromptGlyph').textContent = target.arabic;
     document.getElementById('mfCheckBtn').disabled = false;
+    setTimeout(() => speakLetter(target), 300);
 
     const correctEntries = LETTER_FORM_POSITIONS.map(position => ({ letter: target, position, isCorrect: true }));
 
